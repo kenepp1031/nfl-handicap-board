@@ -57,10 +57,36 @@ st.markdown(
     .kickoff{font-size:12px;font-weight:700;color:#8a8a94;text-align:center}
     .spreadbig{font-size:20px;font-weight:800;color:#c7132d;text-align:center}
     .totalmid{font-size:14px;font-weight:700;text-align:center}
+    /* Matchup header: logos + names side by side, fixed flexbox -- deliberately
+       NOT st.columns, which Streamlit stacks vertically below ~640px and is
+       what made phone cards render as a long single-file dump. */
+    .matchup-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px}
+    .matchup-team{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
+    .matchup-team img{width:40px;height:40px;object-fit:contain}
+    .matchup-team .name{font-weight:800;font-size:12.5px;text-align:center;margin-top:2px;line-height:1.15}
+    .matchup-at{font-weight:800;font-size:12px;color:#8a8a94;padding:0 2px}
+    .predict-block{text-align:center;margin:4px 0 8px}
+    .predict-score{font-size:19px;font-weight:800}
+    .predict-total{font-size:12.5px;font-weight:700;color:#3a7dc9;margin-top:1px}
+    .predict-market{font-size:11.5px;color:#8a8a94;margin-top:1px}
+    .compare-row{display:flex;gap:6px;margin-top:4px}
+    .compare-col{flex:1;min-width:0;text-align:center}
+    @media (max-width: 480px){
+      h1{font-size:26px !important}
+      .matchup-team img{width:32px;height:32px}
+      .matchup-team .name{font-size:11px}
+      .predict-score{font-size:16px}
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
+
+LOGO_URL = "https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png"
+
+
+def injury_count(text: str) -> int:
+    return len([p for p in text.split(",") if p.strip()]) if text else 0
 
 st.title("NFL handicapping board")
 st.caption("Public web companion · research only, not betting advice · mirrors the desktop app's Week / Power Rankings / My Picks views")
@@ -115,90 +141,126 @@ with tab_week:
         st.subheader(f"Week {week} matchups")
         for g in games:
             with st.container(border=True):
-                st.markdown(f'<div class="kickoff">{g["kickoff_display"]}</div>', unsafe_allow_html=True)
+                away_last, home_last = g["away"].split()[-1].upper(), g["home"].split()[-1].upper()
+                away_logo, home_logo = LOGO_URL.format(abbr=g["away_abbr"]), LOGO_URL.format(abbr=g["home_abbr"])
+
+                header = [f'<div class="kickoff">{g["kickoff_display"]}</div>']
                 if g["rivalry"]:
-                    st.markdown('<div class="metaline info">⚔ RIVALRY GAME</div>', unsafe_allow_html=True)
+                    header.append('<div class="metaline info" style="text-align:center">⚔ RIVALRY GAME</div>')
+                header.append(
+                    '<div class="matchup-row">'
+                    f'<div class="matchup-team"><img src="{away_logo}" alt=""><div class="name">{away_last}</div></div>'
+                    '<div class="matchup-at">@</div>'
+                    f'<div class="matchup-team"><img src="{home_logo}" alt=""><div class="name">{home_last}</div></div>'
+                    "</div>"
+                )
+                st.markdown("".join(header), unsafe_allow_html=True)
 
-                away_col, mid_col, home_col = st.columns((4, 3, 4))
-
-                def team_block(col, side, team_key, rating_key, rank_key, grade_key, q_key, out_key, rest_key):
-                    with col:
-                        align = "right" if side == "home" else "left"
-                        st.markdown(f'<div class="teamname" style="text-align:{align}">{g[team_key]}</div>', unsafe_allow_html=True)
-                        if side == "home":
-                            noise = " \U0001F50A" if g["home_noise"] == "elite" else ""
-                            label = g["venue_label"] if g["neutral_site"] else f"HOME FIELD · {g['venue_label']}"
-                            st.markdown(f'<div class="metaline gray" style="text-align:right">{label}{noise}</div>', unsafe_allow_html=True)
-                            if g.get("weather"):
-                                w = g["weather"]
-                                cls = "warn" if w.get("alert") else "gray"
-                                text = (w["text"] or "").replace("\n", "<br>")
-                                icon = w.get("icon") or ""
-                                st.markdown(f'<div class="metaline {cls}" style="text-align:right">{icon} {text}</div>', unsafe_allow_html=True)
-                            if g.get("referee_line"):
-                                st.markdown(f'<div class="metaline gray" style="text-align:right">{g["referee_line"]}</div>', unsafe_allow_html=True)
-                        rating = g[rating_key]
-                        grade = g[grade_key]
-                        rank = g[rank_key]
-                        rank_count = g["team_rank_count"]
-                        rank_suffix = f"  ·  #{rank}/{rank_count}" if rating is not None and rank is not None else ""
-                        rating_text = "—" if rating is None else f"{rating:.1f}{rank_suffix}"
-                        col_a, col_b = st.columns((3, 4)) if side == "home" else st.columns((4, 3))
-                        rank_block, grade_block = (col_b, col_a) if side == "home" else (col_a, col_b)
-                        with rank_block:
-                            st.markdown(f'<div class="metaline" style="text-align:{align};font-weight:700">RANKING {rating_text}</div>', unsafe_allow_html=True)
-                            st.caption(grade["basis"])
-                        with grade_block:
-                            chips = grade_chip("OFFENSE", grade["offense"], grade["offense_colors"], dark_mode) + grade_chip("DEFENSE", grade["defense"], grade["defense_colors"], dark_mode)
-                            st.markdown(f'<div style="text-align:{align}">{chips}</div>', unsafe_allow_html=True)
-                        if g[q_key]:
-                            st.markdown(f'<div class="metaline warn" style="text-align:{align}">QUESTIONABLE  {g[q_key]}</div>', unsafe_allow_html=True)
-                        if g[out_key]:
-                            st.markdown(f'<div class="metaline bad" style="text-align:{align}">OUT / IR  {g[out_key]}</div>', unsafe_allow_html=True)
-                        if g[rest_key] is not None:
-                            rest_cls = "info" if g[rest_key] >= 10 else "gray"
-                            st.markdown(f'<div class="metaline {rest_cls}" style="text-align:{align}">{g[rest_key]} DAYS REST</div>', unsafe_allow_html=True)
-
-                team_block(away_col, "away", "away", "away_rating", "away_rank", "away_grade", "away_questionable", "away_out", "away_rest")
-                team_block(home_col, "home", "home", "home_rating", "home_rank", "home_grade", "home_questionable", "home_out", "home_rest")
-
-                with mid_col:
-                    if g["projection"]:
-                        st.markdown(f'<div class="metaline info" style="text-align:center;font-weight:700">YOUR SPREAD: {g["your_spread_text"]}  ·  LEAN {g["confidence_score"]:g}/10</div>', unsafe_allow_html=True)
-                    else:
-                        st.markdown(f'<div class="metaline info" style="text-align:center;font-weight:700">LEAN INDEX {g["confidence_score"]:g}/10 — {g["confidence_label"]}</div>', unsafe_allow_html=True)
-                    spread_text = "—" if g["dk_spread"] is None else f'{g["home"].split()[-1].upper()} {g["dk_spread"]:+g}'
-                    total_text = "O/U —" if g["dk_total"] is None else f'O/U {g["dk_total"]:g}'
-                    st.markdown(f'<div class="spreadbig">{spread_text}</div>', unsafe_allow_html=True)
-                    st.markdown(f'<div class="totalmid">{total_text}</div>', unsafe_allow_html=True)
-                    if g.get("opening_text"):
-                        st.markdown(f'<div class="metaline gray" style="text-align:center">{g["opening_text"]}</div>', unsafe_allow_html=True)
-                    if g["home_bets"] is not None:
-                        st.markdown(
-                            f'<div class="metaline gray" style="text-align:center">{g["home"].split()[-1]}  {g["home_bets"]}% bets · {g["home_handle"]}% money<br>'
-                            f'{g["away"].split()[-1]}  {g["away_bets"]}% bets · {g["away_handle"]}% money</div>',
-                            unsafe_allow_html=True,
+                # Predicted score / total, front and center -- this used to only show
+                # up inside the collapsed "Game intel" expander.
+                predict_html = ['<div class="predict-block">']
+                if g["projection"]:
+                    p = g["projection"]
+                    predict_html.append(
+                        f'<div class="predict-score">Predicted: {away_last} {p["away_score"]} – {p["home_score"]} {home_last}</div>'
+                    )
+                    if g["dk_total"] is not None:
+                        total_edge = p["total"] - g["dk_total"]
+                        lean = "OVER" if total_edge > 0.5 else ("UNDER" if total_edge < -0.5 else "close to market")
+                        predict_html.append(
+                            f'<div class="predict-total">Predicted total {p["total"]:g} vs market {g["dk_total"]:g} → {lean} lean ({total_edge:+.1f})</div>'
                         )
-                    if g["cover_text"]:
-                        st.markdown(f'<div class="metaline" style="text-align:center;font-weight:700">FINAL {g["home_score"]}–{g["away_score"]}  ·  {g["cover_text"]}</div>', unsafe_allow_html=True)
-                    if g["pick_result"] or g["pick_side"]:
-                        pick_team = g["home"] if g["pick_side"] == "home" else g["away"]
-                        result = g["pick_result"]
-                        cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
-                        glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
-                        label = "BET" if g["bet_star"] else "PICK"
-                        st.markdown(f'<div class="metaline {cls}" style="text-align:center">{glyph}YOUR {label}: {pick_team.split()[-1].upper()}{" (" + result + ")" if result else ""}</div>', unsafe_allow_html=True)
-                    if g["ou_pick"]:
-                        result = g["ou_result"]
-                        cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
-                        st.markdown(f'<div class="metaline {cls}" style="text-align:center">YOUR O/U PICK ({g["ou_pick"].upper()}): {result or "PENDING"}</div>', unsafe_allow_html=True)
-                    if g["auto_pick"]:
-                        auto = g["auto_pick"]
-                        result = auto["result"]
-                        cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
-                        glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
-                        st.markdown(f'<div class="metaline {cls}" style="text-align:center;font-weight:700">{glyph}★ ALGORITHM PICK: {auto["team"].split()[-1].upper()}</div>', unsafe_allow_html=True)
-                        st.caption(auto["note"])
+                    else:
+                        predict_html.append(f'<div class="predict-total">Predicted total {p["total"]:g} (no market total yet)</div>')
+                    predict_html.append(
+                        f'<div class="predict-market">Your spread: {g["your_spread_text"]} · Lean {g["confidence_score"]:g}/10'
+                        + (f' · Market: {home_last} {g["dk_spread"]:+g}' if g["dk_spread"] is not None else "") + "</div>"
+                    )
+                else:
+                    predict_html.append(f'<div class="predict-total">Lean index {g["confidence_score"]:g}/10 — {g["confidence_label"]}</div>')
+                    if g["dk_spread"] is not None or g["dk_total"] is not None:
+                        spread_text = "—" if g["dk_spread"] is None else f"{home_last} {g['dk_spread']:+g}"
+                        total_text = "—" if g["dk_total"] is None else f'{g["dk_total"]:g}'
+                        predict_html.append(f'<div class="predict-market">Market: {spread_text} · O/U {total_text}</div>')
+                predict_html.append("</div>")
+                st.markdown("".join(predict_html), unsafe_allow_html=True)
+
+                # Rank/grade/rest/injury-count comparison, side by side via flexbox
+                # (not st.columns) so it stays side-by-side on a phone instead of
+                # stacking away-then-home as one long scroll.
+                def team_compare_html(team_key, rating_key, rank_key, grade_key, q_key, out_key, rest_key):
+                    rating = g[rating_key]; grade = g[grade_key]; rank = g[rank_key]
+                    rank_suffix = f" · #{rank}/{g['team_rank_count']}" if rating is not None and rank is not None else ""
+                    rating_text = "—" if rating is None else f"{rating:.1f}{rank_suffix}"
+                    chips = grade_chip("OFF", grade["offense"], grade["offense_colors"], dark_mode) + grade_chip("DEF", grade["defense"], grade["defense_colors"], dark_mode)
+                    parts = [
+                        '<div class="compare-col">',
+                        f'<div class="metaline" style="font-weight:700">{rating_text}</div>',
+                        f'<div style="margin:2px 0">{chips}</div>',
+                    ]
+                    q_n, out_n = injury_count(g[q_key]), injury_count(g[out_key])
+                    if q_n or out_n:
+                        bits = []
+                        if q_n: bits.append(f'<span class="metaline warn">Q {q_n}</span>')
+                        if out_n: bits.append(f'<span class="metaline bad">OUT {out_n}</span>')
+                        parts.append(" ".join(bits))
+                    if g[rest_key] is not None:
+                        rest_cls = "info" if g[rest_key] >= 10 else "gray"
+                        parts.append(f'<div class="metaline {rest_cls}">{g[rest_key]:g}d rest</div>')
+                    parts.append("</div>")
+                    return "".join(parts)
+
+                compare = (
+                    '<div class="compare-row">'
+                    + team_compare_html("away", "away_rating", "away_rank", "away_grade", "away_questionable", "away_out", "away_rest")
+                    + team_compare_html("home", "home_rating", "home_rank", "home_grade", "home_questionable", "home_out", "home_rest")
+                    + "</div>"
+                )
+                st.markdown(compare, unsafe_allow_html=True)
+
+                if g["neutral_site"] or g["home_noise"] == "elite" or g.get("weather") or g.get("referee_line"):
+                    extra = []
+                    noise = " \U0001F50A" if g["home_noise"] == "elite" else ""
+                    label = g["venue_label"] if g["neutral_site"] else f"Home field: {g['venue_label']}"
+                    extra.append(f'<div class="metaline gray" style="text-align:center">{label}{noise}</div>')
+                    if g.get("weather"):
+                        w = g["weather"]
+                        cls = "warn" if w.get("alert") else "gray"
+                        text = (w["text"] or "").replace("\n", " · ")
+                        extra.append(f'<div class="metaline {cls}" style="text-align:center">{w.get("icon") or ""} {text}</div>')
+                    if g.get("referee_line"):
+                        extra.append(f'<div class="metaline gray" style="text-align:center">{g["referee_line"]}</div>')
+                    st.markdown("".join(extra), unsafe_allow_html=True)
+
+                results_html = []
+                if g["home_bets"] is not None:
+                    results_html.append(
+                        f'<div class="metaline gray" style="text-align:center">{home_last} {g["home_bets"]}% bets/{g["home_handle"]}% money'
+                        f' · {away_last} {g["away_bets"]}% bets/{g["away_handle"]}% money</div>'
+                    )
+                if g["cover_text"]:
+                    results_html.append(f'<div class="metaline" style="text-align:center;font-weight:700">FINAL {g["home_score"]}–{g["away_score"]} · {g["cover_text"]}</div>')
+                if g["pick_result"] or g["pick_side"]:
+                    pick_team = g["home"] if g["pick_side"] == "home" else g["away"]
+                    result = g["pick_result"]
+                    cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
+                    glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
+                    label = "BET" if g["bet_star"] else "PICK"
+                    results_html.append(f'<div class="metaline {cls}" style="text-align:center">{glyph}Your {label.lower()}: {pick_team.split()[-1].upper()}{" (" + result + ")" if result else ""}</div>')
+                if g["ou_pick"]:
+                    result = g["ou_result"]
+                    cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
+                    results_html.append(f'<div class="metaline {cls}" style="text-align:center">Your O/U pick ({g["ou_pick"].upper()}): {result or "PENDING"}</div>')
+                if g["auto_pick"]:
+                    auto = g["auto_pick"]
+                    result = auto["result"]
+                    cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
+                    glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
+                    results_html.append(f'<div class="metaline {cls}" style="text-align:center;font-weight:700">{glyph}★ Algorithm pick: {auto["team"].split()[-1].upper()}</div>')
+                if results_html:
+                    st.markdown("".join(results_html), unsafe_allow_html=True)
+                if g["auto_pick"]:
+                    st.caption(g["auto_pick"]["note"])
 
                 with st.expander("Game intel (algorithm breakdown + full injury report)"):
                     if g["projection"]:
