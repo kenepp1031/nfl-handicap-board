@@ -728,6 +728,15 @@ def build_picks(c, unit_grades):
 
 
 def main():
+    # Fetch current hourly weather for every game before anything else -- this
+    # script otherwise only READS the weather table, so without this call the
+    # site could ship stale/missing conditions for games kicking off soon.
+    try:
+        import refresh_weather
+        refresh_weather.main()
+    except Exception as ex:
+        print(f"Weather refresh skipped ({ex}); continuing with whatever weather data is already cached.")
+
     conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     c = conn
