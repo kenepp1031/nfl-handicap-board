@@ -1,152 +1,300 @@
 """Public, mobile-friendly companion for the NFL handicapping board.
 
-This app deliberately reads the checked-in SQLite snapshot rather than the Windows
-desktop UI.  That makes it suitable for Streamlit Community Cloud: the site can be
-open even when the authoring PC is off.
+This app deliberately reads `web_snapshot.json` -- a pre-computed export of
+everything the desktop app's Week / Power Rankings / My Picks views show,
+produced locally by `export_web_snapshot.py` (which can import the desktop
+.pyw and hit the network; Tkinter and outbound scraping can't run on
+Streamlit Community Cloud). That makes this site static and always
+reachable, independent of the authoring PC.
+
+Read-only by design: there is no pick-saving or star-toggling here. That
+stays desktop-only.
 """
 from __future__ import annotations
 
-import sqlite3
-from datetime import datetime
+import json
 from pathlib import Path
 
 import streamlit as st
 
-
 APP_DIR = Path(__file__).resolve().parent
-DB_PATH = APP_DIR / "nfl_handicapping_board.db"
+SNAPSHOT_PATH = APP_DIR / "web_snapshot.json"
 
 
 @st.cache_data(ttl=300)
-def load_snapshot() -> tuple[list[dict], list[dict], list[dict], list[dict]]:
-    """Load the published board snapshot with no write access required."""
-    if not DB_PATH.exists():
-        raise FileNotFoundError("The published board snapshot is missing.")
-    with sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True) as connection:
-        connection.row_factory = sqlite3.Row
-        games = [dict(row) for row in connection.execute(
-            "SELECT * FROM games ORDER BY week, kickoff"
-        )]
-        teams = [dict(row) for row in connection.execute(
-            "SELECT * FROM teams ORDER BY consensus_rating DESC, name"
-        )]
-        injuries = [dict(row) for row in connection.execute(
-            "SELECT * FROM injuries ORDER BY team, player"
-        )]
-        weather = [dict(row) for row in connection.execute("SELECT * FROM weather")]
-    return games, teams, injuries, weather
+def load_snapshot() -> dict:
+    if not SNAPSHOT_PATH.exists():
+        raise FileNotFoundError(
+            "web_snapshot.json is missing. Run `python export_web_snapshot.py` "
+            "locally, then commit and push it."
+        )
+    return json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
 
 
-def kickoff_text(value: str) -> str:
-    try:
-        moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        hour = moment.hour % 12 or 12
-        return f"{moment:%a, %b} {moment.day} · {hour}:{moment:%M %p}"
-    except ValueError:
-        return value
-
-
-def team_rating(team: str, ratings: dict[str, float | None]) -> str:
-    value = ratings.get(team)
-    return "—" if value is None else f"{value:.1f}"
-
-
-def injury_summary(team: str, injuries: list[dict]) -> str:
-    people = [row for row in injuries if row["team"] == team]
-    if not people:
-        return "No listed injuries in this snapshot"
-    return " · ".join(
-        f"{row['player']} ({row.get('position') or '—'}: {row.get('status') or 'status unavailable'})"
-        for row in people[:4]
-    )
-
-
-def weather_summary(game: dict, weather_by_event: dict[str, dict]) -> str:
-    row = weather_by_event.get(game["event_id"])
-    if not row:
-        return "Weather not available in this snapshot"
-    if row.get("dome"):
-        return "Dome / roof assumed closed"
-    parts = []
-    if row.get("temperature") is not None:
-        parts.append(f"{row['temperature']:.0f}°F")
-    if row.get("wind") is not None:
-        parts.append(f"wind {row['wind']:.0f} mph")
-    if row.get("alert"):
-        parts.append(str(row["alert"]))
-    return " · ".join(parts) if parts else "Weather data pending"
-
-
-st.set_page_config(page_title="NFL Handicapping Board", page_icon="🏈", layout="wide")
-st.title("NFL handicapping board")
-st.caption("Public web companion · research only, not betting advice")
+st.set_page_config(page_title="NFL Handicapping Board", page_icon="\U0001F3C8", layout="wide")
 
 try:
-    games, teams, injuries, weather = load_snapshot()
-except (sqlite3.Error, FileNotFoundError) as error:
+    snap = load_snapshot()
+except (FileNotFoundError, json.JSONDecodeError) as error:
+    st.title("NFL handicapping board")
     st.error(f"Unable to load the published board: {error}")
     st.stop()
 
-ratings = {row["name"]: row.get("consensus_rating") for row in teams}
-weather_by_event = {row["event_id"]: row for row in weather}
-weeks = sorted({row["week"] for row in games})
+st.markdown(
+    """
+    <style>
+    .chip{display:inline-block;padding:3px 9px;margin:0 3px 3px 0;border-radius:5px;font-weight:700;font-size:12px}
+    .grade-chip{display:inline-block;min-width:46px;padding:4px 8px;margin:0 3px;text-align:center;border-radius:5px}
+    .grade-chip .t{display:block;font-size:8px;font-weight:700;letter-spacing:.3px}
+    .grade-chip .g{display:block;font-size:19px;font-weight:800;line-height:1.15}
+    .metaline{font-size:12.5px;margin:2px 0}
+    .metaline.gray{color:#8a8a94}
+    .metaline.bad{color:#c62839;font-weight:700}
+    .metaline.good{color:#1f9d55;font-weight:700}
+    .metaline.warn{color:#c07a12;font-weight:700}
+    .metaline.info{color:#3a7dc9;font-weight:700}
+    .teamname{font-size:17px;font-weight:800}
+    .kickoff{font-size:12px;font-weight:700;color:#8a8a94;text-align:center}
+    .spreadbig{font-size:20px;font-weight:800;color:#c7132d;text-align:center}
+    .totalmid{font-size:14px;font-weight:700;text-align:center}
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.title("NFL handicapping board")
+st.caption("Public web companion · research only, not betting advice · mirrors the desktop app's Week / Power Rankings / My Picks views")
+st.caption(f"Snapshot generated {snap.get('generated_at', 'unknown time')} · refresh by running `export_web_snapshot.py` on the desktop machine, then committing `web_snapshot.json`")
+
+
+def grade_chip(label: str, grade: str, colors: dict, dark: bool) -> str:
+    fg, bg = colors["dark" if dark else "light"]
+    return f'<span class="grade-chip" style="color:{fg};background:{bg}"><span class="t">{label}</span><span class="g">{grade}</span></span>'
+
 
 with st.sidebar:
     st.header("Board controls")
-    week = st.selectbox("Week", weeks, index=len(weeks) - 1 if weeks else 0)
-    show_injuries = st.toggle("Show injury notes", value=True)
+    dark_mode = st.toggle("Use dark-theme badge colors", value=False, help="Match colors to a dark Streamlit theme; leave off for the default light theme.")
     st.divider()
     st.caption(
-        "This cloud edition uses the latest database snapshot committed to the site. "
-        "Update the repository to publish new lines, scores, rankings, or picks."
+        "This cloud edition uses the latest snapshot committed to GitHub. "
+        "The owner refreshes it by running the desktop app, then "
+        "`export_web_snapshot.py`, then pushing the updated file."
     )
 
-week_games = [row for row in games if row["week"] == week]
-finals = sum(row.get("game_status") == "FINAL" for row in week_games)
-selected = sum(bool(row.get("pick_side")) for row in week_games)
-starred = sum(bool(row.get("bet_star")) for row in week_games)
-with st.container(horizontal=True):
-    st.metric("Games", len(week_games), border=True)
-    st.metric("Final", finals, border=True)
-    st.metric("Saved sides", selected, border=True)
-    st.metric("Starred bets", starred, border=True)
+tab_week, tab_rankings, tab_picks = st.tabs(["This Week", "Power Rankings", "My Picks"])
 
-st.subheader(f"Week {week} matchups")
-for game in week_games:
-    home, away = game["home"], game["away"]
-    with st.container(border=True):
-        st.caption(kickoff_text(game["kickoff"]))
-        left, middle, right = st.columns((4, 3, 4))
-        with left:
-            st.markdown(f"### {away}")
-            st.caption(f"Consensus rating: {team_rating(away, ratings)}")
-            if show_injuries:
-                st.caption(injury_summary(away, injuries))
-        with middle:
-            if game.get("dk_spread") is None:
-                st.metric("Market spread", "—")
-            else:
-                st.metric("Market spread", f"{home.split()[-1]} {game['dk_spread']:+g}")
-            st.metric("Total", "—" if game.get("dk_total") is None else f"O/U {game['dk_total']:g}")
-            if game.get("game_status") == "FINAL":
-                st.caption(f"Final: {away} {game.get('away_score', '—')} · {home} {game.get('home_score', '—')}")
-            elif game.get("pick_side"):
-                pick = home if game["pick_side"] == "home" else away
-                st.caption(f"Saved side: {pick}" + (" ★" if game.get("bet_star") else ""))
-            if game.get("home_bets") is not None:
-                st.caption(f"Public bets: {home.split()[-1]} {game['home_bets']}% · {away.split()[-1]} {game['away_bets']}%")
-        with right:
-            st.markdown(f"### {home}")
-            st.caption(f"Consensus rating: {team_rating(home, ratings)}")
-            st.caption(weather_summary(game, weather_by_event))
-            if show_injuries:
-                st.caption(injury_summary(home, injuries))
+# ---------------------------------------------------------------------------
+# TAB 1: This Week -- mirrors Board.render() / the print page's game cards.
+# ---------------------------------------------------------------------------
+with tab_week:
+    weeks = snap.get("weeks", [])
+    if not weeks:
+        st.info("No games loaded in this snapshot yet.")
+    else:
+        default_index = weeks.index(snap.get("current_week", weeks[-1])) if snap.get("current_week") in weeks else len(weeks) - 1
+        week = st.selectbox("Week", weeks, index=default_index)
+        games = snap["games_by_week"].get(str(week), [])
 
-st.subheader("Consensus rankings")
-ranking_rows = [
-    {"Rank": index, "Team": row["name"], "Consensus": row["consensus_rating"]}
-    for index, row in enumerate((row for row in teams if row.get("consensus_rating") is not None), start=1)
-]
-st.dataframe(ranking_rows, hide_index=True, width="stretch")
+        finals = sum(g["game_status"] == "FINAL" for g in games)
+        starred = sum(g["bet_star"] for g in games)
+        saved = sum(bool(g["pick_side"]) for g in games)
+        with st.container(horizontal=True):
+            st.metric("Games", len(games), border=True)
+            st.metric("Final", finals, border=True)
+            st.metric("Saved sides", saved, border=True)
+            st.metric("Starred bets", starred, border=True)
+
+        top_plays = snap.get("top_plays_by_week", {}).get(str(week), [])
+        if top_plays:
+            items = " &nbsp;·&nbsp; ".join(
+                f"{p['fav']} {p['fav_spread']:+g} vs {p['opp']} ({p['score']:g}/10)" for p in top_plays[:5]
+            )
+            st.markdown(f"**MOST FAVORED GAMES THIS WEEK** &nbsp; {items}")
+
+        st.subheader(f"Week {week} matchups")
+        for g in games:
+            with st.container(border=True):
+                st.markdown(f'<div class="kickoff">{g["kickoff_display"]}</div>', unsafe_allow_html=True)
+                if g["rivalry"]:
+                    st.markdown('<div class="metaline info">⚔ RIVALRY GAME</div>', unsafe_allow_html=True)
+
+                away_col, mid_col, home_col = st.columns((4, 3, 4))
+
+                def team_block(col, side, team_key, rating_key, rank_key, grade_key, q_key, out_key, rest_key):
+                    with col:
+                        align = "right" if side == "home" else "left"
+                        st.markdown(f'<div class="teamname" style="text-align:{align}">{g[team_key]}</div>', unsafe_allow_html=True)
+                        if side == "home":
+                            noise = " \U0001F50A" if g["home_noise"] == "elite" else ""
+                            label = g["venue_label"] if g["neutral_site"] else f"HOME FIELD · {g['venue_label']}"
+                            st.markdown(f'<div class="metaline gray" style="text-align:right">{label}{noise}</div>', unsafe_allow_html=True)
+                            if g.get("weather"):
+                                w = g["weather"]
+                                cls = "warn" if w.get("alert") else "gray"
+                                text = (w["text"] or "").replace("\n", "<br>")
+                                icon = w.get("icon") or ""
+                                st.markdown(f'<div class="metaline {cls}" style="text-align:right">{icon} {text}</div>', unsafe_allow_html=True)
+                            if g.get("referee_line"):
+                                st.markdown(f'<div class="metaline gray" style="text-align:right">{g["referee_line"]}</div>', unsafe_allow_html=True)
+                        rating = g[rating_key]
+                        grade = g[grade_key]
+                        rank = g[rank_key]
+                        rank_count = g["team_rank_count"]
+                        rank_suffix = f"  ·  #{rank}/{rank_count}" if rating is not None and rank is not None else ""
+                        rating_text = "—" if rating is None else f"{rating:.1f}{rank_suffix}"
+                        col_a, col_b = st.columns((3, 4)) if side == "home" else st.columns((4, 3))
+                        rank_block, grade_block = (col_b, col_a) if side == "home" else (col_a, col_b)
+                        with rank_block:
+                            st.markdown(f'<div class="metaline" style="text-align:{align};font-weight:700">RANKING {rating_text}</div>', unsafe_allow_html=True)
+                            st.caption(grade["basis"])
+                        with grade_block:
+                            chips = grade_chip("OFFENSE", grade["offense"], grade["offense_colors"], dark_mode) + grade_chip("DEFENSE", grade["defense"], grade["defense_colors"], dark_mode)
+                            st.markdown(f'<div style="text-align:{align}">{chips}</div>', unsafe_allow_html=True)
+                        if g[q_key]:
+                            st.markdown(f'<div class="metaline warn" style="text-align:{align}">QUESTIONABLE  {g[q_key]}</div>', unsafe_allow_html=True)
+                        if g[out_key]:
+                            st.markdown(f'<div class="metaline bad" style="text-align:{align}">OUT / IR  {g[out_key]}</div>', unsafe_allow_html=True)
+                        if g[rest_key] is not None:
+                            rest_cls = "info" if g[rest_key] >= 10 else "gray"
+                            st.markdown(f'<div class="metaline {rest_cls}" style="text-align:{align}">{g[rest_key]} DAYS REST</div>', unsafe_allow_html=True)
+
+                team_block(away_col, "away", "away", "away_rating", "away_rank", "away_grade", "away_questionable", "away_out", "away_rest")
+                team_block(home_col, "home", "home", "home_rating", "home_rank", "home_grade", "home_questionable", "home_out", "home_rest")
+
+                with mid_col:
+                    if g["projection"]:
+                        st.markdown(f'<div class="metaline info" style="text-align:center;font-weight:700">YOUR SPREAD: {g["your_spread_text"]}  ·  LEAN {g["confidence_score"]:g}/10</div>', unsafe_allow_html=True)
+                    else:
+                        st.markdown(f'<div class="metaline info" style="text-align:center;font-weight:700">LEAN INDEX {g["confidence_score"]:g}/10 — {g["confidence_label"]}</div>', unsafe_allow_html=True)
+                    spread_text = "—" if g["dk_spread"] is None else f'{g["home"].split()[-1].upper()} {g["dk_spread"]:+g}'
+                    total_text = "O/U —" if g["dk_total"] is None else f'O/U {g["dk_total"]:g}'
+                    st.markdown(f'<div class="spreadbig">{spread_text}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="totalmid">{total_text}</div>', unsafe_allow_html=True)
+                    if g.get("opening_text"):
+                        st.markdown(f'<div class="metaline gray" style="text-align:center">{g["opening_text"]}</div>', unsafe_allow_html=True)
+                    if g["home_bets"] is not None:
+                        st.markdown(
+                            f'<div class="metaline gray" style="text-align:center">{g["home"].split()[-1]}  {g["home_bets"]}% bets · {g["home_handle"]}% money<br>'
+                            f'{g["away"].split()[-1]}  {g["away_bets"]}% bets · {g["away_handle"]}% money</div>',
+                            unsafe_allow_html=True,
+                        )
+                    if g["cover_text"]:
+                        st.markdown(f'<div class="metaline" style="text-align:center;font-weight:700">FINAL {g["home_score"]}–{g["away_score"]}  ·  {g["cover_text"]}</div>', unsafe_allow_html=True)
+                    if g["pick_result"] or g["pick_side"]:
+                        pick_team = g["home"] if g["pick_side"] == "home" else g["away"]
+                        result = g["pick_result"]
+                        cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
+                        glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
+                        label = "BET" if g["bet_star"] else "PICK"
+                        st.markdown(f'<div class="metaline {cls}" style="text-align:center">{glyph}YOUR {label}: {pick_team.split()[-1].upper()}{" (" + result + ")" if result else ""}</div>', unsafe_allow_html=True)
+                    if g["ou_pick"]:
+                        result = g["ou_result"]
+                        cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
+                        st.markdown(f'<div class="metaline {cls}" style="text-align:center">YOUR O/U PICK ({g["ou_pick"].upper()}): {result or "PENDING"}</div>', unsafe_allow_html=True)
+                    if g["auto_pick"]:
+                        auto = g["auto_pick"]
+                        result = auto["result"]
+                        cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
+                        glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
+                        st.markdown(f'<div class="metaline {cls}" style="text-align:center;font-weight:700">{glyph}★ ALGORITHM PICK: {auto["team"].split()[-1].upper()}</div>', unsafe_allow_html=True)
+                        st.caption(auto["note"])
+
+                with st.expander("Game intel (algorithm breakdown + full injury report)"):
+                    if g["projection"]:
+                        p = g["projection"]
+                        st.markdown(
+                            f"**Projected score:** {g['away'].split()[-1].upper()} {p['away_score']} · {g['home'].split()[-1].upper()} {p['home_score']}  \n"
+                            f"**Projected line:** {g['home'].split()[-1].upper()} {p['home_spread']:+g}  ·  **Projected total:** {p['total']:g}"
+                            + (f"  \n**Edge vs market spread ({g['dk_spread']:+g}):** {p['edge']:+g} pts" if p["edge"] is not None else "")
+                        )
+                    st.markdown(
+                        f"**Consensus rating:** {g['away'].split()[-1].upper()} {g['away_rating'] if g['away_rating'] is not None else '—'} "
+                        f"· {g['home'].split()[-1].upper()} {g['home_rating'] if g['home_rating'] is not None else '—'}  \n"
+                        f"**Days rest:** {g['away'].split()[-1].upper()} {g['away_rest'] if g['away_rest'] is not None else '—'} "
+                        f"· {g['home'].split()[-1].upper()} {g['home_rest'] if g['home_rest'] is not None else '—'}"
+                    )
+                    st.markdown("**Automatic inputs (positive favors home, negative favors away):**")
+                    for factor in g["confidence_breakdown"]:
+                        note = "" if factor["counted"] else "  _(folded into projected spread above, shown for reference only)_"
+                        st.markdown(f"- {factor['label']}: {factor['value']:+.2f}{note}")
+                    st.markdown(f"**LEAN INDEX:** {g['confidence_score']:g} / 10 — {g['confidence_label']}")
+                    st.caption("Directional only -- not a win probability or a betting recommendation. Ratings are a 1-10 consensus ranking scale; the projected spread/total are transparent estimates, not a market replacement.")
+                    if g.get("referee"):
+                        ref = g["referee"]
+                        over_text = f"{ref['over_pct']:.1f}%" if ref["over_pct"] is not None else "n/a"
+                        games_text = f"{ref['games']} games" if ref["games"] is not None else "no career sample yet"
+                        if ref["home_ats_pct"] is not None:
+                            st.markdown(f"**On the call:** {ref['referee'].upper()} · career Home ATS {ref['home_ats_pct']:.1f}% ({games_text}) · Over {over_text}")
+                        else:
+                            st.markdown(f"**On the call:** {ref['referee'].upper()} · {games_text}")
+                    st.divider()
+                    st.markdown(f"**{g['away'].upper()} INJURY REPORT**  \nQuestionable: {g['away_questionable'] or 'none listed'}  \nOut / IR: {g['away_out'] or 'none listed'}")
+                    st.markdown(f"**{g['home'].upper()} INJURY REPORT**  \nQuestionable: {g['home_questionable'] or 'none listed'}  \nOut / IR: {g['home_out'] or 'none listed'}")
+
+# ---------------------------------------------------------------------------
+# TAB 2: Power Rankings -- mirrors Board.render_rankings().
+# ---------------------------------------------------------------------------
+with tab_rankings:
+    rankings = snap.get("rankings", {})
+    st.caption(rankings.get("grade_guide", ""))
+    st.caption(rankings.get("stats_state", ""))
+    st.caption("Ranking sources refreshed: " + rankings.get("source_state", ""))
+    st.subheader(f"Week {rankings.get('week', '?')} consensus power rankings")
+    st.caption("Color scale: 10 dark green → neon green → yellow → orange → 1 red")
+
+    for row in rankings.get("teams", []):
+        cols = st.columns((1, 3, 1.4, 1, 1, 1, 3))
+        color = row["rating_color_dark" if dark_mode else "rating_color_light"]
+        cols[0].markdown(f"**{row['rank']}/{row['of']}**")
+        cols[1].markdown(f"**{row['name'].upper()}**")
+        cols[2].markdown(f'<span style="color:{color};font-weight:800">{row["consensus_rating"]:.1f} / 10</span>', unsafe_allow_html=True)
+        cols[3].markdown(grade_chip("OFF", row["offense"], row["offense_colors"], dark_mode), unsafe_allow_html=True)
+        cols[4].markdown(grade_chip("DEF", row["defense"], row["defense_colors"], dark_mode), unsafe_allow_html=True)
+        move_color = {"up": "#1f9d55", "down": "#c62839", "flat": "#8a8a94"}[row["move_direction"]]
+        cols[5].markdown(f'<span style="color:{move_color};font-weight:700">{row["move"]}</span>', unsafe_allow_html=True)
+        sources_text = " · ".join(f"{label} {rank if rank else '—'}" for label, rank in row["sources"].items())
+        cols[6].caption(sources_text)
+        st.divider()
+
+# ---------------------------------------------------------------------------
+# TAB 3: My Picks -- mirrors Board.render_picks().
+# ---------------------------------------------------------------------------
+with tab_picks:
+    picks = snap.get("picks", {})
+
+    def picks_table(rows):
+        if not rows:
+            return None
+        return [
+            {
+                "Wk": r["week"],
+                "Matchup": f"{r['away'].split()[-1].upper()} @ {r['home'].split()[-1].upper()}",
+                "Grades (away/home)": f"{r['away_grade_line']} / {r['home_grade_line']}",
+                "Pick": (("★ " if r["bet_star"] else "") + r["pick_team"].split()[-1].upper()) if r["pick_team"] else "—",
+                "Line": (f"{r['line']:+g}" if r["line"] is not None else "N/A"),
+                "Result": r["result"] or "—",
+                "O/U pick": (f"{r['ou']['pick'].upper()} ({r['ou']['result']})" if r["ou"] else "—"),
+                "Algorithm pick": (f"{r['auto']['team']} ({r['auto']['result'] or 'pending'})" if r["auto"] else "—"),
+            }
+            for r in rows
+        ]
+
+    st.markdown(f"### ★ My bets record (ATS): {picks.get('bet_record', '0-0')}")
+    table = picks_table(picks.get("bet_games", []))
+    if table:
+        st.dataframe(table, hide_index=True, width="stretch")
+    else:
+        st.caption("No starred bets yet.")
+
+    st.markdown(f"### My picks record (ATS): {picks.get('pick_record', '0-0')} · O/U record: {picks.get('ou_record', '0-0')}")
+    table = picks_table(picks.get("pick_games", []))
+    if table:
+        st.dataframe(table, hide_index=True, width="stretch")
+    else:
+        st.caption("No picks made yet.")
+
+    st.markdown(f"### ★ Algorithm picks record (ATS): {picks.get('auto_record', '0-0')}")
+    st.caption("What the automatic Lean Index would have picked in every game it took a real side on -- graded against the spread at the moment it first leaned, tracked purely for comparison against the picks above.")
 
 st.caption("Lines, injuries, weather, rankings, and picks are research context. Verify current information before making any decision.")

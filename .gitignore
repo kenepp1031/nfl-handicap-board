@@ -7,3 +7,7 @@ __pycache__/
 
 # Secrets, if ever added
 .streamlit/secrets.toml
+
+# SQLite WAL/journal files left behind while the desktop app is open
+*.db-wal
+*.db-shm
