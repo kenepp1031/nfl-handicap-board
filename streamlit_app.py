@@ -84,9 +84,24 @@ st.markdown(
 
 LOGO_URL = "https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png"
 
+# Border color per weather condition, checked in this priority order (snow beats
+# rain beats wind-only) -- reuses the same alert text the desktop app already
+# computes in weather_flags(), so "SNOW" / "RAIN" / "WIND" keywords line up
+# with its FREEZING RAIN / SNOW / RAIN / WIND flag strings.
+WEATHER_BORDER_COLORS = {"snow": "#e8e8ec", "rain": "#3a7dc9", "wind": "#8a8a94"}
 
-def injury_count(text: str) -> int:
-    return len([p for p in text.split(",") if p.strip()]) if text else 0
+
+def weather_alert_kind(weather: dict | None) -> str | None:
+    if not weather or weather.get("dome"):
+        return None
+    alert = (weather.get("alert") or "").upper()
+    if "SNOW" in alert:
+        return "snow"
+    if "RAIN" in alert:
+        return "rain"
+    if "WIND" in alert or (weather.get("wind") or 0) >= 15:
+        return "wind"
+    return None
 
 st.title("NFL handicapping board")
 st.caption("Public web companion · research only, not betting advice · mirrors the desktop app's Week / Power Rankings / My Picks views")
@@ -139,8 +154,17 @@ with tab_week:
             st.markdown(f"**MOST FAVORED GAMES THIS WEEK** &nbsp; {items}")
 
         st.subheader(f"Week {week} matchups")
+        st.caption("Colored border = weather alert for that game: ⬜ snow · 🟦 rain · ⬛ wind 15+ mph")
         for g in games:
-            with st.container(border=True):
+            alert_kind = weather_alert_kind(g.get("weather"))
+            card_key = f"game_{g['event_id']}"
+            if alert_kind:
+                color = WEATHER_BORDER_COLORS[alert_kind]
+                st.markdown(
+                    f'<style>.st-key-{card_key} {{border:3px solid {color} !important}}</style>',
+                    unsafe_allow_html=True,
+                )
+            with st.container(border=True, key=card_key):
                 away_last, home_last = g["away"].split()[-1].upper(), g["home"].split()[-1].upper()
                 away_logo, home_logo = LOGO_URL.format(abbr=g["away_abbr"]), LOGO_URL.format(abbr=g["home_abbr"])
 
@@ -154,11 +178,20 @@ with tab_week:
                     f'<div class="matchup-team"><img src="{home_logo}" alt=""><div class="name">{home_last}</div></div>'
                     "</div>"
                 )
+                if g.get("weather"):
+                    w = g["weather"]
+                    cls = "warn" if w.get("alert") else "gray"
+                    text = (w["text"] or "").replace("\n", " · ")
+                    header.append(f'<div class="metaline {cls}" style="text-align:center;font-weight:700">{w.get("icon") or ""} {text}</div>')
                 st.markdown("".join(header), unsafe_allow_html=True)
 
                 # Predicted score / total, front and center -- this used to only show
                 # up inside the collapsed "Game intel" expander.
                 predict_html = ['<div class="predict-block">']
+                spread_text = "—" if g["dk_spread"] is None else f"{home_last} {g['dk_spread']:+g}"
+                total_text = "—" if g["dk_total"] is None else f'{g["dk_total"]:g}'
+                predict_html.append(f'<div class="spreadbig">DraftKings: {spread_text}</div>')
+                predict_html.append(f'<div class="totalmid">O/U {total_text}</div>')
                 if g["projection"]:
                     p = g["projection"]
                     predict_html.append(
@@ -168,20 +201,15 @@ with tab_week:
                         total_edge = p["total"] - g["dk_total"]
                         lean = "OVER" if total_edge > 0.5 else ("UNDER" if total_edge < -0.5 else "close to market")
                         predict_html.append(
-                            f'<div class="predict-total">Predicted total {p["total"]:g} vs market {g["dk_total"]:g} → {lean} lean ({total_edge:+.1f})</div>'
+                            f'<div class="predict-total">Predicted total {p["total"]:g} → {lean} lean ({total_edge:+.1f} vs market)</div>'
                         )
                     else:
                         predict_html.append(f'<div class="predict-total">Predicted total {p["total"]:g} (no market total yet)</div>')
                     predict_html.append(
-                        f'<div class="predict-market">Your spread: {g["your_spread_text"]} · Lean {g["confidence_score"]:g}/10'
-                        + (f' · Market: {home_last} {g["dk_spread"]:+g}' if g["dk_spread"] is not None else "") + "</div>"
+                        f'<div class="predict-market">Your spread: {g["your_spread_text"]} · Lean {g["confidence_score"]:g}/10</div>'
                     )
                 else:
                     predict_html.append(f'<div class="predict-total">Lean index {g["confidence_score"]:g}/10 — {g["confidence_label"]}</div>')
-                    if g["dk_spread"] is not None or g["dk_total"] is not None:
-                        spread_text = "—" if g["dk_spread"] is None else f"{home_last} {g['dk_spread']:+g}"
-                        total_text = "—" if g["dk_total"] is None else f'{g["dk_total"]:g}'
-                        predict_html.append(f'<div class="predict-market">Market: {spread_text} · O/U {total_text}</div>')
                 predict_html.append("</div>")
                 st.markdown("".join(predict_html), unsafe_allow_html=True)
 
@@ -198,12 +226,6 @@ with tab_week:
                         f'<div class="metaline" style="font-weight:700">{rating_text}</div>',
                         f'<div style="margin:2px 0">{chips}</div>',
                     ]
-                    q_n, out_n = injury_count(g[q_key]), injury_count(g[out_key])
-                    if q_n or out_n:
-                        bits = []
-                        if q_n: bits.append(f'<span class="metaline warn">Q {q_n}</span>')
-                        if out_n: bits.append(f'<span class="metaline bad">OUT {out_n}</span>')
-                        parts.append(" ".join(bits))
                     if g[rest_key] is not None:
                         rest_cls = "info" if g[rest_key] >= 10 else "gray"
                         parts.append(f'<div class="metaline {rest_cls}">{g[rest_key]:g}d rest</div>')
@@ -218,16 +240,11 @@ with tab_week:
                 )
                 st.markdown(compare, unsafe_allow_html=True)
 
-                if g["neutral_site"] or g["home_noise"] == "elite" or g.get("weather") or g.get("referee_line"):
+                if g["neutral_site"] or g["home_noise"] == "elite" or g.get("referee_line"):
                     extra = []
                     noise = " \U0001F50A" if g["home_noise"] == "elite" else ""
                     label = g["venue_label"] if g["neutral_site"] else f"Home field: {g['venue_label']}"
                     extra.append(f'<div class="metaline gray" style="text-align:center">{label}{noise}</div>')
-                    if g.get("weather"):
-                        w = g["weather"]
-                        cls = "warn" if w.get("alert") else "gray"
-                        text = (w["text"] or "").replace("\n", " · ")
-                        extra.append(f'<div class="metaline {cls}" style="text-align:center">{w.get("icon") or ""} {text}</div>')
                     if g.get("referee_line"):
                         extra.append(f'<div class="metaline gray" style="text-align:center">{g["referee_line"]}</div>')
                     st.markdown("".join(extra), unsafe_allow_html=True)
@@ -262,26 +279,9 @@ with tab_week:
                 if g["auto_pick"]:
                     st.caption(g["auto_pick"]["note"])
 
-                with st.expander("Game intel (algorithm breakdown + full injury report)"):
-                    if g["projection"]:
-                        p = g["projection"]
-                        st.markdown(
-                            f"**Projected score:** {g['away'].split()[-1].upper()} {p['away_score']} · {g['home'].split()[-1].upper()} {p['home_score']}  \n"
-                            f"**Projected line:** {g['home'].split()[-1].upper()} {p['home_spread']:+g}  ·  **Projected total:** {p['total']:g}"
-                            + (f"  \n**Edge vs market spread ({g['dk_spread']:+g}):** {p['edge']:+g} pts" if p["edge"] is not None else "")
-                        )
-                    st.markdown(
-                        f"**Consensus rating:** {g['away'].split()[-1].upper()} {g['away_rating'] if g['away_rating'] is not None else '—'} "
-                        f"· {g['home'].split()[-1].upper()} {g['home_rating'] if g['home_rating'] is not None else '—'}  \n"
-                        f"**Days rest:** {g['away'].split()[-1].upper()} {g['away_rest'] if g['away_rest'] is not None else '—'} "
-                        f"· {g['home'].split()[-1].upper()} {g['home_rest'] if g['home_rest'] is not None else '—'}"
-                    )
-                    st.markdown("**Automatic inputs (positive favors home, negative favors away):**")
-                    for factor in g["confidence_breakdown"]:
-                        note = "" if factor["counted"] else "  _(folded into projected spread above, shown for reference only)_"
-                        st.markdown(f"- {factor['label']}: {factor['value']:+.2f}{note}")
+                with st.expander("Game intel (lean + full injury report)"):
                     st.markdown(f"**LEAN INDEX:** {g['confidence_score']:g} / 10 — {g['confidence_label']}")
-                    st.caption("Directional only -- not a win probability or a betting recommendation. Ratings are a 1-10 consensus ranking scale; the projected spread/total are transparent estimates, not a market replacement.")
+                    st.caption("Directional only -- not a win probability or a betting recommendation.")
                     if g.get("referee"):
                         ref = g["referee"]
                         over_text = f"{ref['over_pct']:.1f}%" if ref["over_pct"] is not None else "n/a"
