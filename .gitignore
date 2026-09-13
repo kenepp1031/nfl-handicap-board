@@ -1,0 +1,9 @@
+# Python
+__pycache__/
+*.pyc
+
+# Backups - not needed in the deployed repo
+*.bak-*
+
+# Secrets, if ever added
+.streamlit/secrets.toml
