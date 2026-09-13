@@ -727,6 +727,30 @@ def build_picks(c, unit_grades):
     }
 
 
+def current_week_from_schedule(weeks, games_by_week):
+    """The week the site should default to: the latest week whose earliest
+    game has already kicked off, i.e. "the week that's actually happening
+    right now." Previously this was `max(weeks)`, which defaults the site to
+    the season's LAST week (e.g. Week 18) the moment the schedule is loaded,
+    regardless of what week it actually is -- so on a Week 1 Sunday the site
+    opened on Week 18 instead of today's games."""
+    now = datetime.now(timezone.utc)
+    current = weeks[0] if weeks else 1
+    for week in sorted(weeks):
+        kickoffs = []
+        for g in games_by_week.get(str(week), []):
+            try:
+                dt = datetime.fromisoformat(g["kickoff"].replace("Z", "+00:00"))
+                kickoffs.append(dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc))
+            except (ValueError, TypeError, AttributeError):
+                continue
+        if kickoffs and min(kickoffs) <= now:
+            current = week
+        else:
+            break
+    return current
+
+
 def main():
     # Fetch current hourly weather for every game before anything else -- this
     # script otherwise only READS the weather table, so without this call the
@@ -753,7 +777,7 @@ def main():
         games_by_week[str(week)] = [build_game_payload(c, g, unit_grades, team_rank, team_rank_count) for g in games]
         top_plays_by_week[str(week)] = compute_top_plays(c, games, unit_grades)
 
-    current_week = max(weeks) if weeks else 1
+    current_week = current_week_from_schedule(weeks, games_by_week)
     current_unit_grades, current_stats_state = load_unit_grades(current_week)
     rankings = build_rankings(c, current_week, current_unit_grades, current_stats_state)
     picks = build_picks(c, current_unit_grades)
