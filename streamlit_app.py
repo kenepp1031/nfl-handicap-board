@@ -9,6 +9,12 @@ reachable, independent of the authoring PC.
 
 Read-only by design: there is no pick-saving or star-toggling here. That
 stays desktop-only.
+
+Visual design: the "Edge Board" look -- dark theme, scrolling best-bets
+ticker, a Best Bets of the Week card grid, then a full matchup card grid
+with projected score, model-vs-market edge table, and public betting
+splits. Ported from dashboard/render.py's static HTML dashboard so both
+the desktop board and this cloud companion share one visual identity.
 """
 from __future__ import annotations
 
@@ -40,42 +46,125 @@ except (FileNotFoundError, json.JSONDecodeError) as error:
     st.error(f"Unable to load the published board: {error}")
     st.stop()
 
+# ---------------------------------------------------------------------------
+# Edge Board dark theme -- palette and component classes lifted straight from
+# dashboard/render.py's CSS so the two boards look like one product. Layered
+# on top of/over Streamlit's own chrome (app background, headers, tabs,
+# sidebar, buttons) via data-testid selectors so widgets that stay
+# Streamlit-native (tabs, selectbox, expanders, dataframes) still read as
+# part of the same dark UI instead of clashing with it.
+# ---------------------------------------------------------------------------
 st.markdown(
     """
     <style>
-    .chip{display:inline-block;padding:3px 9px;margin:0 3px 3px 0;border-radius:5px;font-weight:700;font-size:12px}
-    .grade-chip{display:inline-block;min-width:46px;padding:4px 8px;margin:0 3px;text-align:center;border-radius:5px}
-    .grade-chip .t{display:block;font-size:8px;font-weight:700;letter-spacing:.3px}
-    .grade-chip .g{display:block;font-size:19px;font-weight:800;line-height:1.15}
-    .metaline{font-size:12.5px;margin:2px 0}
-    .metaline.gray{color:#8a8a94}
-    .metaline.bad{color:#c62839;font-weight:700}
-    .metaline.good{color:#1f9d55;font-weight:700}
-    .metaline.warn{color:#c07a12;font-weight:700}
-    .metaline.info{color:#3a7dc9;font-weight:700}
-    .teamname{font-size:17px;font-weight:800}
-    .kickoff{font-size:12px;font-weight:700;color:#8a8a94;text-align:center}
-    .spreadbig{font-size:20px;font-weight:800;color:#c7132d;text-align:center}
-    .totalmid{font-size:14px;font-weight:700;text-align:center}
-    /* Matchup header: logos + names side by side, fixed flexbox -- deliberately
-       NOT st.columns, which Streamlit stacks vertically below ~640px and is
-       what made phone cards render as a long single-file dump. */
-    .matchup-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:6px}
-    .matchup-team{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0}
-    .matchup-team img{width:40px;height:40px;object-fit:contain}
-    .matchup-team .name{font-weight:800;font-size:12.5px;text-align:center;margin-top:2px;line-height:1.15}
-    .matchup-at{font-weight:800;font-size:12px;color:#8a8a94;padding:0 2px}
-    .predict-block{text-align:center;margin:4px 0 8px}
-    .predict-score{font-size:19px;font-weight:800}
-    .predict-total{font-size:12.5px;font-weight:700;color:#3a7dc9;margin-top:1px}
-    .predict-market{font-size:11.5px;color:#8a8a94;margin-top:1px}
-    .compare-row{display:flex;gap:6px;margin-top:4px}
-    .compare-col{flex:1;min-width:0;text-align:center}
+    :root{
+      --bg:#0a0e17; --card-bg:#111726; --card-border:#26314a; --card-border-best:#22c55e;
+      --gold:#f5a623; --gold2:#fbbf24; --teal:#2dd4bf; --away:#f97362;
+      --text:#e8ecf3; --text-dim:#8b93a7; --badge-bg:#1a2136; --green:#22c55e;
+      --blue:#3b82f6; --red:#ef4444;
+    }
+    [data-testid="stAppViewContainer"], [data-testid="stHeader"], [data-testid="stSidebar"], .stApp{
+      background:var(--bg) !important; color:var(--text) !important;
+    }
+    [data-testid="stSidebar"]{border-right:1px solid var(--card-border);}
+    [data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li,
+    [data-testid="stCaptionContainer"], .stApp p, .stApp span, .stApp label{color:var(--text);}
+    [data-testid="stCaptionContainer"]{color:var(--text-dim) !important;}
+    .stTabs [data-baseweb="tab-list"]{border-bottom:1px solid var(--card-border);gap:4px;}
+    .stTabs [data-baseweb="tab"]{color:var(--text-dim);}
+    .stTabs [aria-selected="true"]{color:var(--gold2) !important;}
+    [data-testid="stMetric"], [data-testid="stExpander"], .stDataFrame{
+      background:var(--card-bg) !important;border:1px solid var(--card-border) !important;border-radius:10px !important;
+    }
+    [data-testid="stMetricValue"]{color:var(--text) !important;}
+    [data-testid="stMetricLabel"]{color:var(--text-dim) !important;}
+    hr{border-color:var(--card-border) !important;}
+
+    /* --- Edge Board components (ported verbatim from render.py's CSS) --- */
+    .eb-ticker{background:#0d1220;border-bottom:1px solid var(--card-border);border-radius:8px;
+      display:flex;align-items:center;overflow:hidden;white-space:nowrap;height:40px;margin:4px 0 18px;}
+    .eb-ticker-track{display:flex;align-items:center;gap:28px;padding-left:16px;animation:eb-scroll 140s linear infinite;}
+    .eb-ticker-item{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-dim);}
+    .eb-ticker-item b{color:var(--text);}
+    .eb-ticker-conf{background:var(--gold);color:#1a1206;font-weight:700;font-size:10.5px;border-radius:4px;padding:1px 6px;}
+    @keyframes eb-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+
+    h1.eb-h1{font-size:32px;margin:0 0 4px;font-weight:800;}
+    h1.eb-h1 .accent{background:linear-gradient(90deg,var(--gold),var(--gold2));-webkit-background-clip:text;
+      background-clip:text;color:transparent;}
+    .eb-sub{color:var(--text-dim);font-size:13.5px;margin-bottom:4px;}
+    .eb-section-title{font-size:13px;font-weight:800;letter-spacing:.05em;color:var(--text);margin:26px 0 4px;
+      display:flex;align-items:baseline;gap:10px;}
+    .eb-section-title .n{font-size:12px;font-weight:500;color:var(--text-dim);}
+
+    .bb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:12px;}
+    .bb-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:14px;}
+    .bb-matchup{font-size:14.5px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+    .bb-logo{width:19px;height:19px;object-fit:contain;}
+    .bb-pick{font-size:13px;margin-bottom:8px;}
+    .bb-pick .pick-val{color:var(--gold2);font-weight:800;}
+    .bb-pick .pick-type{color:var(--text-dim);font-size:11px;letter-spacing:.04em;margin-left:4px;}
+    .bb-reason{font-size:12px;color:var(--text-dim);line-height:1.4;margin-bottom:10px;}
+    .confbar{height:5px;border-radius:3px;background:#232a3d;overflow:hidden;margin-bottom:6px;}
+    .confbar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));}
+    .confrow{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);}
+    .confrow b{color:var(--text);}
+    .empty-note{color:var(--text-dim);font-size:13px;margin-top:10px;}
+
+    .eb-card{background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:10px;
+      padding:16px;position:relative;margin-bottom:14px;}
+    .eb-card.best{border-color:var(--card-border-best);}
+    .eb-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:6px;flex-wrap:wrap;}
+    .pill{font-size:10px;font-weight:800;letter-spacing:.05em;border-radius:4px;padding:3px 7px;}
+    .pill-best{background:var(--gold);color:#1a1206;}
+    .pill-weather{border:1px solid var(--card-border);color:var(--text-dim);background:#0d1220;}
+    .pill-wind{border-color:var(--green);color:var(--green);}
+    .pill-rain{border-color:var(--blue);color:var(--blue);}
+    .pill-snow{border-color:#e5e7eb;color:#e5e7eb;}
+    .eb-team-names{display:flex;justify-content:center;align-items:center;gap:10px;margin-bottom:8px;}
+    .eb-team{display:flex;align-items:center;gap:6px;font-weight:800;font-size:17px;}
+    .eb-team.home{color:var(--teal);} .eb-team.away{color:var(--away);flex-direction:row-reverse;}
+    .eb-team img{width:26px;height:26px;object-fit:contain;}
+    .eb-at{color:var(--text-dim);font-weight:700;font-size:12px;}
+    .dkline{text-align:center;font-size:12px;color:var(--text-dim);background:#0d1220;border:1px solid var(--card-border);
+      border-radius:6px;padding:5px 8px;margin-bottom:8px;}
+    .dkline b{color:var(--gold2);}
+    .eb-meta{font-size:12px;color:var(--text-dim);margin-bottom:2px;text-align:center;}
+    .eb-meta.info{color:#3a7dc9;} .eb-meta.warn{color:#c07a12;font-weight:700;}
+    .eb-meta.good{color:var(--green);font-weight:700;} .eb-meta.bad{color:var(--red);font-weight:700;}
+    .section-label{font-size:10.5px;color:var(--text-dim);letter-spacing:.06em;margin:12px 0 4px;font-weight:700;}
+    .projscore{font-size:20px;font-weight:800;margin-bottom:8px;text-align:center;}
+    .projscore .home{color:var(--teal);} .projscore .away{color:var(--away);} .projscore .dash{color:var(--text-dim);font-weight:400;}
+    table.edge{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:6px;}
+    table.edge th{text-align:left;font-weight:600;color:var(--text-dim);font-size:10.5px;padding:3px 4px;letter-spacing:.03em;}
+    table.edge td{padding:4px 4px;border-top:1px solid #1c2338;color:var(--text);}
+    table.edge td.edgeval{color:var(--gold2);font-weight:700;}
+    .splitrow{margin-bottom:8px;}
+    .splitlabel{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:3px;}
+    .bar{height:7px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:3px;background:#1a2136;}
+    .bar-a{background:var(--teal);} .bar-b{background:var(--away);}
+    .barnum{font-size:11px;color:var(--text-dim);text-align:right;}
+    .confidence-row{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;padding-top:8px;
+      border-top:1px solid #1c2338;color:var(--text);}
+    .confidence-row b{font-size:14px;}
+    .leannote{font-size:10px;color:var(--text-dim);font-weight:400;}
+    .eb-grades{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+    .badge{background:var(--badge-bg);border:1px solid var(--card-border);border-radius:4px;padding:2px 6px;font-size:10.5px;}
+    details.eb-details{margin-top:8px;}
+    details.eb-details summary{cursor:pointer;font-size:12px;color:var(--gold2);font-weight:600;list-style:none;}
+    details.eb-details summary::-webkit-details-marker{display:none;}
+    details.eb-details summary:before{content:"▸ ";}
+    details.eb-details[open] summary:before{content:"▾ ";}
+    .eb-details-body{margin-top:8px;font-size:12px;color:var(--text-dim);line-height:1.6;}
+    .eb-details-body b{color:var(--text);}
+    .eb-report-list{margin:0 0 8px;padding-left:18px;}
+    .eb-report-list li{margin-bottom:5px;}
+
     @media (max-width: 480px){
-      h1{font-size:26px !important}
-      .matchup-team img{width:32px;height:32px}
-      .matchup-team .name{font-size:11px}
-      .predict-score{font-size:16px}
+      h1.eb-h1{font-size:24px !important}
+      .eb-team img{width:22px;height:22px}
+      .eb-team{font-size:14px}
+      .projscore{font-size:17px}
     }
     </style>
     """,
@@ -84,11 +173,8 @@ st.markdown(
 
 LOGO_URL = "https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png"
 
-# Border color per weather condition, checked in this priority order (snow beats
-# rain beats wind-only) -- reuses the same alert text the desktop app already
-# computes in weather_flags(), so "SNOW" / "RAIN" / "WIND" keywords line up
-# with its FREEZING RAIN / SNOW / RAIN / WIND flag strings.
-WEATHER_BORDER_COLORS = {"snow": "#e8e8ec", "rain": "#3a7dc9", "wind": "#8a8a94"}
+WEATHER_BORDER_COLORS = {"snow": "#e5e7eb", "rain": "#3b82f6", "wind": "#22c55e"}
+WEATHER_PILL_CLASS = {"snow": "pill-snow", "rain": "pill-rain", "wind": "pill-wind"}
 
 
 def weather_alert_kind(weather: dict | None) -> str | None:
@@ -103,20 +189,25 @@ def weather_alert_kind(weather: dict | None) -> str | None:
         return "wind"
     return None
 
-st.title("NFL handicapping board")
-st.caption("Public web companion · research only, not betting advice · mirrors the desktop app's Week / Power Rankings / My Picks views")
+
+st.markdown('<h1 class="eb-h1">Edge <span class="accent">Board</span></h1>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="eb-sub">Public web companion &middot; research only, not betting advice &middot; '
+    "mirrors the desktop app's Week / Power Rankings / My Picks views</div>",
+    unsafe_allow_html=True,
+)
 st.caption(f"Snapshot generated {snap.get('generated_at', 'unknown time')} · refresh by running `export_web_snapshot.py` on the desktop machine, then committing `web_snapshot.json`")
 
+DARK = True  # Edge Board is a fixed dark theme -- always use the dark badge/rating palette.
 
-def grade_chip(label: str, grade: str, colors: dict, dark: bool) -> str:
-    fg, bg = colors["dark" if dark else "light"]
-    return f'<span class="grade-chip" style="color:{fg};background:{bg}"><span class="t">{label}</span><span class="g">{grade}</span></span>'
+
+def grade_chip(label: str, grade: str, colors: dict) -> str:
+    fg, bg = colors["dark" if DARK else "light"]
+    return f'<span class="badge" style="color:{fg};background:{bg}">{label} {grade}</span>'
 
 
 with st.sidebar:
     st.header("Board controls")
-    dark_mode = st.toggle("Use dark-theme badge colors", value=False, help="Match colors to a dark Streamlit theme; leave off for the default light theme.")
-    st.divider()
     st.caption(
         "This cloud edition uses the latest snapshot committed to GitHub. "
         "The owner refreshes it by running the desktop app, then "
@@ -126,7 +217,7 @@ with st.sidebar:
 tab_week, tab_rankings, tab_picks = st.tabs(["This Week", "Power Rankings", "My Picks"])
 
 # ---------------------------------------------------------------------------
-# TAB 1: This Week -- mirrors Board.render() / the print page's game cards.
+# TAB 1: This Week -- Edge Board look: ticker, Best Bets grid, matchup cards.
 # ---------------------------------------------------------------------------
 with tab_week:
     weeks = snap.get("weeks", [])
@@ -146,6 +237,53 @@ with tab_week:
             st.metric("Saved sides", saved, border=True)
             st.metric("Starred bets", starred, border=True)
 
+        # --- Ticker: every game's lean, scrolling marquee like the desktop board ---
+        ticker_items = []
+        for g in games:
+            if g["confidence_score"] is None:
+                continue
+            away_last, home_last = g["away"].split()[-1].upper(), g["home"].split()[-1].upper()
+            conf_pct = round(min(100, max(0, g["confidence_score"] * 10)))
+            ticker_items.append(
+                f'<div class="eb-ticker-item">{away_last} @ {home_last} &nbsp;<b>{g["confidence_label"]}</b> '
+                f'<span class="eb-ticker-conf">{conf_pct}</span></div>'
+            )
+        ticker_html = "".join(ticker_items) or '<div class="eb-ticker-item">No graded games this week yet</div>'
+        ticker_html += ticker_html
+        st.markdown(f'<div class="eb-ticker"><div class="eb-ticker-track">{ticker_html}</div></div>', unsafe_allow_html=True)
+
+        # --- Best Bets of the Week: top plays by lean score ---
+        BEST_BET_THRESHOLD = 7.5
+        best_bet_games = sorted(
+            (g for g in games if g["confidence_score"] is not None and abs(g["confidence_score"] - 5.0) >= (BEST_BET_THRESHOLD - 5.0)),
+            key=lambda g: abs(g["confidence_score"] - 5.0),
+            reverse=True,
+        )
+        best_bet_cards = []
+        for g in best_bet_games:
+            away_abbr, home_abbr = g["away_abbr"], g["home_abbr"]
+            away_last, home_last = g["away"].split()[-1].upper(), g["home"].split()[-1].upper()
+            pick_txt = g["confidence_label"]
+            score_pct = round(min(100, max(0, g["confidence_score"] * 10)))
+            reason = g["auto_pick"]["note"] if g.get("auto_pick") else f"Lean index {g['confidence_score']:g}/10."
+            best_bet_cards.append(f"""
+<div class="bb-card">
+  <div class="bb-matchup"><img class="bb-logo" src="{LOGO_URL.format(abbr=away_abbr)}" alt=""> {away_last} @ {home_last} <img class="bb-logo" src="{LOGO_URL.format(abbr=home_abbr)}" alt=""></div>
+  <div class="bb-pick"><span class="pick-val">{pick_txt}</span></div>
+  <div class="bb-reason">{reason}</div>
+  <div class="confbar"><div class="confbar-fill" style="width:{score_pct}%"></div></div>
+  <div class="confrow"><span>Lean Score</span><b>{g['confidence_score']:g}/10</b></div>
+</div>""")
+
+        st.markdown(
+            f'<div class="eb-section-title">BEST BETS OF THE WEEK <span class="n">{len(best_bet_cards)} qualify at {BEST_BET_THRESHOLD:g}+ lean score</span></div>',
+            unsafe_allow_html=True,
+        )
+        if best_bet_cards:
+            st.markdown(f'<div class="bb-grid">{"".join(best_bet_cards)}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="empty-note">No plays clear the {BEST_BET_THRESHOLD:g}+ lean-score bar this week.</div>', unsafe_allow_html=True)
+
         top_plays = snap.get("top_plays_by_week", {}).get(str(week), [])
         if top_plays:
             items = " &nbsp;·&nbsp; ".join(
@@ -153,146 +291,145 @@ with tab_week:
             )
             st.markdown(f"**MOST FAVORED GAMES THIS WEEK** &nbsp; {items}")
 
-        st.subheader(f"Week {week} matchups")
-        st.caption("Colored border = weather alert for that game: ⬜ snow · 🟦 rain · ⬛ wind 15+ mph")
+        st.markdown(
+            f'<div class="eb-section-title">ALL GAMES <span class="n">{len(games)} games</span></div>',
+            unsafe_allow_html=True,
+        )
+        st.caption("Colored border = weather alert for that game: ⬜ snow · 🟦 rain · 🟩 wind 15+ mph")
+
         for g in games:
+            away_last, home_last = g["away"].split()[-1].upper(), g["home"].split()[-1].upper()
+            away_logo, home_logo = LOGO_URL.format(abbr=g["away_abbr"]), LOGO_URL.format(abbr=g["home_abbr"])
             alert_kind = weather_alert_kind(g.get("weather"))
-            card_key = f"game_{g['event_id']}"
+            is_best_bet = g in best_bet_games
+
+            card = [f'<div class="eb-card{" best" if is_best_bet else ""}"'
+                    + (f' style="border-color:{WEATHER_BORDER_COLORS[alert_kind]}"' if alert_kind else "") + '>']
+
+            top_pills = []
+            if is_best_bet:
+                top_pills.append('<span class="pill pill-best">★ BEST BET</span>')
             if alert_kind:
-                color = WEATHER_BORDER_COLORS[alert_kind]
-                st.markdown(
-                    f'<style>.st-key-{card_key} {{border:3px solid {color} !important}}</style>',
-                    unsafe_allow_html=True,
-                )
-            with st.container(border=True, key=card_key):
-                away_last, home_last = g["away"].split()[-1].upper(), g["home"].split()[-1].upper()
-                away_logo, home_logo = LOGO_URL.format(abbr=g["away_abbr"]), LOGO_URL.format(abbr=g["home_abbr"])
+                label = {"snow": "SNOW", "rain": "RAIN", "wind": "WIND 15+"}[alert_kind]
+                top_pills.append(f'<span class="pill pill-weather {WEATHER_PILL_CLASS[alert_kind]}">{label}</span>')
+            card.append(f'<div class="eb-card-top"><span>{"".join(top_pills)}</span><span class="eb-meta" style="margin:0">{g["kickoff_display"]}</span></div>')
 
-                header = [f'<div class="kickoff">{g["kickoff_display"]}</div>']
-                if g["rivalry"]:
-                    header.append('<div class="metaline info" style="text-align:center">⚔ RIVALRY GAME</div>')
-                header.append(
-                    '<div class="matchup-row">'
-                    f'<div class="matchup-team"><img src="{away_logo}" alt=""><div class="name">{away_last}</div></div>'
-                    '<div class="matchup-at">@</div>'
-                    f'<div class="matchup-team"><img src="{home_logo}" alt=""><div class="name">{home_last}</div></div>'
-                    "</div>"
-                )
-                if g.get("weather"):
-                    w = g["weather"]
-                    cls = "warn" if w.get("alert") else "gray"
-                    text = (w["text"] or "").replace("\n", " · ")
-                    header.append(f'<div class="metaline {cls}" style="text-align:center;font-weight:700">{w.get("icon") or ""} {text}</div>')
-                st.markdown("".join(header), unsafe_allow_html=True)
+            if g["rivalry"]:
+                card.append('<div class="eb-meta info">⚔ RIVALRY GAME</div>')
 
-                # Predicted score / total, front and center -- this used to only show
-                # up inside the collapsed "Game intel" expander.
-                predict_html = ['<div class="predict-block">']
-                spread_text = "—" if g["dk_spread"] is None else f"{home_last} {g['dk_spread']:+g}"
-                total_text = "—" if g["dk_total"] is None else f'{g["dk_total"]:g}'
-                predict_html.append(f'<div class="spreadbig">DraftKings: {spread_text}</div>')
-                predict_html.append(f'<div class="totalmid">O/U {total_text}</div>')
-                if g["projection"]:
-                    p = g["projection"]
-                    predict_html.append(
-                        f'<div class="predict-score">Predicted: {away_last} {p["away_score"]} – {p["home_score"]} {home_last}</div>'
-                    )
-                    if g["dk_total"] is not None:
-                        total_edge = p["total"] - g["dk_total"]
-                        lean = "OVER" if total_edge > 0.5 else ("UNDER" if total_edge < -0.5 else "close to market")
-                        predict_html.append(
-                            f'<div class="predict-total">Predicted total {p["total"]:g} → {lean} lean ({total_edge:+.1f} vs market)</div>'
-                        )
-                    else:
-                        predict_html.append(f'<div class="predict-total">Predicted total {p["total"]:g} (no market total yet)</div>')
-                    predict_html.append(
-                        f'<div class="predict-market">Your spread: {g["your_spread_text"]} · Lean {g["confidence_score"]:g}/10</div>'
-                    )
+            card.append(
+                '<div class="eb-team-names">'
+                f'<div class="eb-team away">{away_last}<img src="{away_logo}" alt=""></div>'
+                '<div class="eb-at">@</div>'
+                f'<div class="eb-team home"><img src="{home_logo}" alt="">{home_last}</div>'
+                "</div>"
+            )
+
+            spread_text = "—" if g["dk_spread"] is None else f"{home_last} {g['dk_spread']:+g}"
+            total_text = "—" if g["dk_total"] is None else f'{g["dk_total"]:g}'
+            card.append(f'<div class="dkline">DraftKings: <b>{spread_text}</b> &nbsp;·&nbsp; O/U <b>{total_text}</b></div>')
+
+            if g.get("weather"):
+                w = g["weather"]
+                cls = "warn" if w.get("alert") else ""
+                text = (w["text"] or "").replace("\n", " · ")
+                card.append(f'<div class="eb-meta {cls}">{w.get("icon") or ""} {text}</div>')
+
+            if g["neutral_site"] or g["home_noise"] == "elite" or g.get("referee_line"):
+                noise = " \U0001F50A" if g["home_noise"] == "elite" else ""
+                label = g["venue_label"] if g["neutral_site"] else f"Home field: {g['venue_label']}"
+                card.append(f'<div class="eb-meta">{label}{noise}</div>')
+                if g.get("referee_line"):
+                    card.append(f'<div class="eb-meta">{g["referee_line"]}</div>')
+
+            card.append('<div class="section-label" style="text-align:center">PROJECTED SCORE</div>')
+            if g["projection"]:
+                p = g["projection"]
+                card.append(
+                    f'<div class="projscore"><span class="away">{away_last} {p["away_score"]}</span>'
+                    f'<span class="dash"> — </span><span class="home">{home_last} {p["home_score"]}</span></div>'
+                )
+                model_spread = p["home_score"] - p["away_score"]
+                spread_edge_row = (
+                    f'<tr><td>Spread</td><td>{model_spread:+.1f}</td>'
+                    f'<td class="edgeval">{abs(model_spread - g["dk_spread"]):.1f} pts</td></tr>'
+                    if g["dk_spread"] is not None else
+                    '<tr><td>Spread</td><td colspan="2" style="color:var(--text-dim)">pending</td></tr>'
+                )
+                total_edge_row = (
+                    f'<tr><td>Total</td><td>{p["total"]:g}</td>'
+                    f'<td class="edgeval">{abs(p["total"] - g["dk_total"]):.1f} pts</td></tr>'
+                    if g["dk_total"] is not None else
+                    '<tr><td>Total</td><td colspan="2" style="color:var(--text-dim)">pending</td></tr>'
+                )
+                card.append(f'<table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr>{spread_edge_row}{total_edge_row}</table>')
+                card.append(f'<div class="eb-meta">Your spread: {g["your_spread_text"]}</div>')
+            else:
+                card.append(f'<div class="projscore dash">Lean index {g["confidence_score"]:g}/10 — {g["confidence_label"]}</div>')
+
+            if g["home_bets"] is not None:
+                card.append(
+                    '<div class="splitrow"><div class="splitlabel"><span>SPREAD — BETS</span></div>'
+                    f'<div class="bar"><div class="bar-a" style="width:{g["home_bets"]}%"></div><div class="bar-b" style="width:{100 - g["home_bets"]}%"></div></div>'
+                    f'<div class="barnum">{home_last} {g["home_bets"]}% / {away_last} {g["away_bets"]}%</div>'
+                    '<div class="splitlabel" style="margin-top:4px"><span>SPREAD — HANDLE</span></div>'
+                    f'<div class="bar"><div class="bar-a" style="width:{g["home_handle"]}%"></div><div class="bar-b" style="width:{100 - g["home_handle"]}%"></div></div>'
+                    f'<div class="barnum">{home_last} {g["home_handle"]}% / {away_last} {g["away_handle"]}%</div></div>'
+                )
+
+            results = []
+            if g["cover_text"]:
+                results.append(f'<div class="eb-meta" style="font-weight:700">FINAL {g["home_score"]}–{g["away_score"]} · {g["cover_text"]}</div>')
+            if g["pick_result"] or g["pick_side"]:
+                pick_team = g["home"] if g["pick_side"] == "home" else g["away"]
+                result = g["pick_result"]
+                cls = "good" if result == "WON" else ("bad" if result == "LOST" else "")
+                glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
+                label = "BET" if g["bet_star"] else "PICK"
+                results.append(f'<div class="eb-meta {cls}">{glyph}Your {label.lower()}: {pick_team.split()[-1].upper()}{" (" + result + ")" if result else ""}</div>')
+            if g["ou_pick"]:
+                result = g["ou_result"]
+                cls = "good" if result == "WON" else ("bad" if result == "LOST" else "")
+                results.append(f'<div class="eb-meta {cls}">Your O/U pick ({g["ou_pick"].upper()}): {result or "PENDING"}</div>')
+            if g["auto_pick"]:
+                auto = g["auto_pick"]
+                result = auto["result"]
+                cls = "good" if result == "WON" else ("bad" if result == "LOST" else "")
+                glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
+                results.append(f'<div class="eb-meta {cls}" style="font-weight:700">{glyph}★ Algorithm pick: {auto["team"].split()[-1].upper()}</div>')
+            card.append("".join(results))
+
+            badges = grade_chip("AWAY OFF", g["away_grade"]["offense"], g["away_grade"]["offense_colors"]) \
+                + grade_chip("AWAY DEF", g["away_grade"]["defense"], g["away_grade"]["defense_colors"]) \
+                + grade_chip("HOME OFF", g["home_grade"]["offense"], g["home_grade"]["offense_colors"]) \
+                + grade_chip("HOME DEF", g["home_grade"]["defense"], g["home_grade"]["defense_colors"])
+
+            report_items = []
+            if g["auto_pick"]:
+                report_items.append(g["auto_pick"]["note"])
+            if g["away_questionable"] or g["away_out"]:
+                report_items.append(f'{away_last} injuries — Questionable: {g["away_questionable"] or "none"} · Out/IR: {g["away_out"] or "none"}')
+            if g["home_questionable"] or g["home_out"]:
+                report_items.append(f'{home_last} injuries — Questionable: {g["home_questionable"] or "none"} · Out/IR: {g["home_out"] or "none"}')
+            if g.get("referee"):
+                ref = g["referee"]
+                over_text = f"{ref['over_pct']:.1f}%" if ref["over_pct"] is not None else "n/a"
+                games_text = f"{ref['games']} games" if ref["games"] is not None else "no career sample yet"
+                if ref["home_ats_pct"] is not None:
+                    report_items.append(f"On the call: {ref['referee'].upper()} · career Home ATS {ref['home_ats_pct']:.1f}% ({games_text}) · Over {over_text}")
                 else:
-                    predict_html.append(f'<div class="predict-total">Lean index {g["confidence_score"]:g}/10 — {g["confidence_label"]}</div>')
-                predict_html.append("</div>")
-                st.markdown("".join(predict_html), unsafe_allow_html=True)
+                    report_items.append(f"On the call: {ref['referee'].upper()} · {games_text}")
+            report_html = "".join(f"<li>{item}</li>" for item in report_items) or "<li>No unusual factors on paper.</li>"
 
-                # Rank/grade/rest/injury-count comparison, side by side via flexbox
-                # (not st.columns) so it stays side-by-side on a phone instead of
-                # stacking away-then-home as one long scroll.
-                def team_compare_html(team_key, rating_key, rank_key, grade_key, q_key, out_key, rest_key):
-                    rating = g[rating_key]; grade = g[grade_key]; rank = g[rank_key]
-                    rank_suffix = f" · #{rank}/{g['team_rank_count']}" if rating is not None and rank is not None else ""
-                    rating_text = "—" if rating is None else f"{rating:.1f}{rank_suffix}"
-                    chips = grade_chip("OFF", grade["offense"], grade["offense_colors"], dark_mode) + grade_chip("DEF", grade["defense"], grade["defense_colors"], dark_mode)
-                    parts = [
-                        '<div class="compare-col">',
-                        f'<div class="metaline" style="font-weight:700">{rating_text}</div>',
-                        f'<div style="margin:2px 0">{chips}</div>',
-                    ]
-                    if g[rest_key] is not None:
-                        rest_cls = "info" if g[rest_key] >= 10 else "gray"
-                        parts.append(f'<div class="metaline {rest_cls}">{g[rest_key]:g}d rest</div>')
-                    parts.append("</div>")
-                    return "".join(parts)
+            card.append(
+                f'<div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>{g["confidence_score"]:g}/10</b></div>'
+                f'<details class="eb-details"><summary>Game Report</summary>'
+                f'<div class="eb-details-body"><ul class="eb-report-list">{report_html}</ul>'
+                f'<div class="eb-grades">{badges}</div></div></details>'
+            )
 
-                compare = (
-                    '<div class="compare-row">'
-                    + team_compare_html("away", "away_rating", "away_rank", "away_grade", "away_questionable", "away_out", "away_rest")
-                    + team_compare_html("home", "home_rating", "home_rank", "home_grade", "home_questionable", "home_out", "home_rest")
-                    + "</div>"
-                )
-                st.markdown(compare, unsafe_allow_html=True)
-
-                if g["neutral_site"] or g["home_noise"] == "elite" or g.get("referee_line"):
-                    extra = []
-                    noise = " \U0001F50A" if g["home_noise"] == "elite" else ""
-                    label = g["venue_label"] if g["neutral_site"] else f"Home field: {g['venue_label']}"
-                    extra.append(f'<div class="metaline gray" style="text-align:center">{label}{noise}</div>')
-                    if g.get("referee_line"):
-                        extra.append(f'<div class="metaline gray" style="text-align:center">{g["referee_line"]}</div>')
-                    st.markdown("".join(extra), unsafe_allow_html=True)
-
-                results_html = []
-                if g["home_bets"] is not None:
-                    results_html.append(
-                        f'<div class="metaline gray" style="text-align:center">{home_last} {g["home_bets"]}% bets/{g["home_handle"]}% money'
-                        f' · {away_last} {g["away_bets"]}% bets/{g["away_handle"]}% money</div>'
-                    )
-                if g["cover_text"]:
-                    results_html.append(f'<div class="metaline" style="text-align:center;font-weight:700">FINAL {g["home_score"]}–{g["away_score"]} · {g["cover_text"]}</div>')
-                if g["pick_result"] or g["pick_side"]:
-                    pick_team = g["home"] if g["pick_side"] == "home" else g["away"]
-                    result = g["pick_result"]
-                    cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
-                    glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
-                    label = "BET" if g["bet_star"] else "PICK"
-                    results_html.append(f'<div class="metaline {cls}" style="text-align:center">{glyph}Your {label.lower()}: {pick_team.split()[-1].upper()}{" (" + result + ")" if result else ""}</div>')
-                if g["ou_pick"]:
-                    result = g["ou_result"]
-                    cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
-                    results_html.append(f'<div class="metaline {cls}" style="text-align:center">Your O/U pick ({g["ou_pick"].upper()}): {result or "PENDING"}</div>')
-                if g["auto_pick"]:
-                    auto = g["auto_pick"]
-                    result = auto["result"]
-                    cls = "good" if result == "WON" else ("bad" if result == "LOST" else "gray")
-                    glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
-                    results_html.append(f'<div class="metaline {cls}" style="text-align:center;font-weight:700">{glyph}★ Algorithm pick: {auto["team"].split()[-1].upper()}</div>')
-                if results_html:
-                    st.markdown("".join(results_html), unsafe_allow_html=True)
-                if g["auto_pick"]:
-                    st.caption(g["auto_pick"]["note"])
-
-                with st.expander("Game intel (lean + full injury report)"):
-                    st.markdown(f"**LEAN INDEX:** {g['confidence_score']:g} / 10 — {g['confidence_label']}")
-                    st.caption("Directional only -- not a win probability or a betting recommendation.")
-                    if g.get("referee"):
-                        ref = g["referee"]
-                        over_text = f"{ref['over_pct']:.1f}%" if ref["over_pct"] is not None else "n/a"
-                        games_text = f"{ref['games']} games" if ref["games"] is not None else "no career sample yet"
-                        if ref["home_ats_pct"] is not None:
-                            st.markdown(f"**On the call:** {ref['referee'].upper()} · career Home ATS {ref['home_ats_pct']:.1f}% ({games_text}) · Over {over_text}")
-                        else:
-                            st.markdown(f"**On the call:** {ref['referee'].upper()} · {games_text}")
-                    st.divider()
-                    st.markdown(f"**{g['away'].upper()} INJURY REPORT**  \nQuestionable: {g['away_questionable'] or 'none listed'}  \nOut / IR: {g['away_out'] or 'none listed'}")
-                    st.markdown(f"**{g['home'].upper()} INJURY REPORT**  \nQuestionable: {g['home_questionable'] or 'none listed'}  \nOut / IR: {g['home_out'] or 'none listed'}")
+            card.append("</div>")
+            st.markdown("".join(card), unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # TAB 2: Power Rankings -- mirrors Board.render_rankings().
@@ -307,12 +444,12 @@ with tab_rankings:
 
     for row in rankings.get("teams", []):
         cols = st.columns((1, 3, 1.4, 1, 1, 1, 3))
-        color = row["rating_color_dark" if dark_mode else "rating_color_light"]
+        color = row["rating_color_dark" if DARK else "rating_color_light"]
         cols[0].markdown(f"**{row['rank']}/{row['of']}**")
         cols[1].markdown(f"**{row['name'].upper()}**")
         cols[2].markdown(f'<span style="color:{color};font-weight:800">{row["consensus_rating"]:.1f} / 10</span>', unsafe_allow_html=True)
-        cols[3].markdown(grade_chip("OFF", row["offense"], row["offense_colors"], dark_mode), unsafe_allow_html=True)
-        cols[4].markdown(grade_chip("DEF", row["defense"], row["defense_colors"], dark_mode), unsafe_allow_html=True)
+        cols[3].markdown(grade_chip("OFF", row["offense"], row["offense_colors"]), unsafe_allow_html=True)
+        cols[4].markdown(grade_chip("DEF", row["defense"], row["defense_colors"]), unsafe_allow_html=True)
         move_color = {"up": "#1f9d55", "down": "#c62839", "flat": "#8a8a94"}[row["move_direction"]]
         cols[5].markdown(f'<span style="color:{move_color};font-weight:700">{row["move"]}</span>', unsafe_allow_html=True)
         sources_text = " · ".join(f"{label} {rank if rank else '—'}" for label, rank in row["sources"].items())
