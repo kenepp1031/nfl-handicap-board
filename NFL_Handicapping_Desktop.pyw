@@ -414,7 +414,7 @@ def init_db() -> None:
         # wired up for real, so it stays.)
         # Preserve legacy settings for inspection; do not erase user data on startup.
         columns={r[1] for r in c.execute("PRAGMA table_info(games)")}
-        for name, definition in (("line_source", "TEXT"), ("home_bets", "INTEGER"), ("home_handle", "INTEGER"), ("away_bets", "INTEGER"), ("away_handle", "INTEGER"), ("line_checked", "TEXT"), ("home_score", "INTEGER"), ("away_score", "INTEGER"), ("game_status", "TEXT"), ("pick_side", "TEXT"), ("bet_star", "INTEGER NOT NULL DEFAULT 0"), ("ou_pick", "TEXT"), ("pick_spread", "REAL"), ("pick_recorded", "TEXT"), ("auto_pick_side", "TEXT"), ("auto_pick_spread", "REAL"), ("auto_pick_recorded", "TEXT")):
+        for name, definition in (("line_source", "TEXT"), ("home_bets", "INTEGER"), ("home_handle", "INTEGER"), ("away_bets", "INTEGER"), ("away_handle", "INTEGER"), ("line_checked", "TEXT"), ("home_score", "INTEGER"), ("away_score", "INTEGER"), ("game_status", "TEXT"), ("pick_side", "TEXT"), ("bet_star", "INTEGER NOT NULL DEFAULT 0"), ("ou_pick", "TEXT"), ("pick_spread", "REAL"), ("pick_recorded", "TEXT"), ("auto_pick_side", "TEXT"), ("auto_pick_spread", "REAL"), ("auto_pick_recorded", "TEXT"), ("over_bets", "INTEGER"), ("over_handle", "INTEGER"), ("under_bets", "INTEGER"), ("under_handle", "INTEGER")):
             if name not in columns: c.execute(f"ALTER TABLE games ADD COLUMN {name} {definition}")
         for name in ("fd_spread", "fd_total"):
             pass  # Legacy FanDuel columns retained for audit, not used by the model.
@@ -2206,8 +2206,9 @@ document.addEventListener('DOMContentLoaded',function(){
                     values=self._draftkings_game_values(spreads, totals, game["away"], game["home"])
                     if not values: continue
                     checked=datetime.now().isoformat(timespec="minutes")
-                    c.execute("UPDATE games SET dk_spread=?,dk_total=?,home_bets=?,home_handle=?,away_bets=?,away_handle=?,line_source=?,line_checked=? WHERE event_id=?",(*values,"DraftKings",checked,game["event_id"]))
-                    c.execute("INSERT OR IGNORE INTO line_history(event_id,checked_at,home_spread,total,home_bets,home_handle,away_bets,away_handle) VALUES(?,?,?,?,?,?,?,?)",(game["event_id"],checked,*values))
+                    line_values, split_values=values[:6],values[6:]
+                    c.execute("UPDATE games SET dk_spread=?,dk_total=?,home_bets=?,home_handle=?,away_bets=?,away_handle=?,line_source=?,line_checked=?,over_bets=?,over_handle=?,under_bets=?,under_handle=? WHERE event_id=?",(*line_values,"DraftKings",checked,*split_values,game["event_id"]))
+                    c.execute("INSERT OR IGNORE INTO line_history(event_id,checked_at,home_spread,total,home_bets,home_handle,away_bets,away_handle) VALUES(?,?,?,?,?,?,?,?)",(game["event_id"],checked,*line_values))
                     updated+=1
             self._ui_queue.put(lambda:(self.queue_render(),self.status.set(f"DraftKings update complete: {updated} Week {season_week} game(s) found. It refreshes automatically whenever the board opens.")))
         except Exception as ex:
@@ -2236,10 +2237,18 @@ document.addEventListener('DOMContentLoaded',function(){
         home_line, home_handle, home_bets=parsed[home_code]
         _away_line, away_handle, away_bets=parsed[away_code]
         total_value=None
+        over_bets=over_handle=under_bets=under_handle=None
         if total_card:
-            found=re.search(r"Over\s+(\d+(?:\.\d+)?)\s+[+−]\d+\s+\d{1,3}%\s+\d{1,3}%",total_card,re.I)
-            if found: total_value=float(found.group(1))
-        return (home_line,total_value,home_bets,home_handle,away_bets,away_handle)
+            # Same "TEAM POINT ODDS HANDLE% BETS%" shape as the spread card, just
+            # with Over/Under standing in for the team code.
+            found=re.search(r"Over\s+(\d+(?:\.\d+)?)\s+[+−]\d+\s+(\d{1,3})%\s+(\d{1,3})%",total_card,re.I)
+            if found:
+                total_value=float(found.group(1))
+                over_handle,over_bets=int(found.group(2)),int(found.group(3))
+            found=re.search(r"Under\s+\d+(?:\.\d+)?\s+[+−]\d+\s+(\d{1,3})%\s+(\d{1,3})%",total_card,re.I)
+            if found:
+                under_handle,under_bets=int(found.group(1)),int(found.group(2))
+        return (home_line,total_value,home_bets,home_handle,away_bets,away_handle,over_bets,over_handle,under_bets,under_handle)
 
 if __name__=="__main__":
     # .pyw runs with no console window, so an unhandled exception normally

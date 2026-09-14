@@ -37,7 +37,7 @@ def load_snapshot() -> dict:
     return json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
 
 
-st.set_page_config(page_title="NFL Handicapping Board", page_icon="\U0001F3C8", layout="wide")
+st.set_page_config(page_title="NFL Handicapping Board", page_icon="\U0001F3C8", layout="wide", initial_sidebar_state="collapsed")
 
 try:
     snap = load_snapshot()
@@ -111,8 +111,9 @@ st.markdown(
     .confrow b{color:var(--text);}
     .empty-note{color:var(--text-dim);font-size:13px;margin-top:10px;}
 
+    .eb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:14px;}
     .eb-card{background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:10px;
-      padding:16px;position:relative;margin-bottom:14px;}
+      padding:16px;position:relative;}
     .eb-card.best{border-color:var(--card-border-best);}
     .eb-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:6px;flex-wrap:wrap;}
     .pill{font-size:10px;font-weight:800;letter-spacing:.05em;border-radius:4px;padding:3px 7px;}
@@ -143,6 +144,7 @@ st.markdown(
     .splitlabel{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:3px;}
     .bar{height:7px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:3px;background:#1a2136;}
     .bar-a{background:var(--teal);} .bar-b{background:var(--away);}
+    .bar-c{background:var(--gold2);} .bar-d{background:var(--blue);}
     .barnum{font-size:11px;color:var(--text-dim);text-align:right;}
     .confidence-row{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;padding-top:8px;
       border-top:1px solid #1c2338;color:var(--text);}
@@ -190,14 +192,6 @@ def weather_alert_kind(weather: dict | None) -> str | None:
     return None
 
 
-st.markdown('<h1 class="eb-h1">Edge <span class="accent">Board</span></h1>', unsafe_allow_html=True)
-st.markdown(
-    '<div class="eb-sub">Public web companion &middot; research only, not betting advice &middot; '
-    "mirrors the desktop app's Week / Power Rankings / My Picks views</div>",
-    unsafe_allow_html=True,
-)
-st.caption(f"Snapshot generated {snap.get('generated_at', 'unknown time')} · refresh by running `export_web_snapshot.py` on the desktop machine, then committing `web_snapshot.json`")
-
 DARK = True  # Edge Board is a fixed dark theme -- always use the dark badge/rating palette.
 
 
@@ -206,36 +200,25 @@ def grade_chip(label: str, grade: str, colors: dict) -> str:
     return f'<span class="badge" style="color:{fg};background:{bg}">{label} {grade}</span>'
 
 
-with st.sidebar:
-    st.header("Board controls")
-    st.caption(
-        "This cloud edition uses the latest snapshot committed to GitHub. "
-        "The owner refreshes it by running the desktop app, then "
-        "`export_web_snapshot.py`, then pushing the updated file."
-    )
+weeks = snap.get("weeks", [])
+default_index = weeks.index(snap.get("current_week", weeks[-1])) if snap.get("current_week") in weeks else len(weeks) - 1 if weeks else 0
 
-tab_week, tab_rankings, tab_picks = st.tabs(["This Week", "Power Rankings", "My Picks"])
+header_l, header_r = st.columns([3, 1])
+with header_l:
+    st.markdown('<h1 class="eb-h1">Edge <span class="accent">Board</span></h1>', unsafe_allow_html=True)
+with header_r:
+    if weeks:
+        week = st.selectbox("Week", weeks, index=default_index, label_visibility="collapsed")
+    view = st.pills("View", ["This Week", "Power Rankings"], default="This Week", label_visibility="collapsed")
 
 # ---------------------------------------------------------------------------
-# TAB 1: This Week -- Edge Board look: ticker, Best Bets grid, matchup cards.
+# This Week -- Edge Board look: ticker, Best Bets grid, matchup cards.
 # ---------------------------------------------------------------------------
-with tab_week:
-    weeks = snap.get("weeks", [])
-    if not weeks:
-        st.info("No games loaded in this snapshot yet.")
-    else:
-        default_index = weeks.index(snap.get("current_week", weeks[-1])) if snap.get("current_week") in weeks else len(weeks) - 1
-        week = st.selectbox("Week", weeks, index=default_index)
+if not weeks:
+    st.info("No games loaded in this snapshot yet.")
+elif view == "This Week":
+    if True:
         games = snap["games_by_week"].get(str(week), [])
-
-        finals = sum(g["game_status"] == "FINAL" for g in games)
-        starred = sum(g["bet_star"] for g in games)
-        saved = sum(bool(g["pick_side"]) for g in games)
-        with st.container(horizontal=True):
-            st.metric("Games", len(games), border=True)
-            st.metric("Final", finals, border=True)
-            st.metric("Saved sides", saved, border=True)
-            st.metric("Starred bets", starred, border=True)
 
         # --- Ticker: every game's lean, scrolling marquee like the desktop board ---
         ticker_items = []
@@ -284,22 +267,15 @@ with tab_week:
         else:
             st.markdown(f'<div class="empty-note">No plays clear the {BEST_BET_THRESHOLD:g}+ lean-score bar this week.</div>', unsafe_allow_html=True)
 
-        top_plays = snap.get("top_plays_by_week", {}).get(str(week), [])
-        if top_plays:
-            items = " &nbsp;·&nbsp; ".join(
-                f"{p['fav']} {p['fav_spread']:+g} vs {p['opp']} ({p['score']:g}/10)" for p in top_plays[:5]
-            )
-            st.markdown(f"**MOST FAVORED GAMES THIS WEEK** &nbsp; {items}")
-
         st.markdown(
             f'<div class="eb-section-title">ALL GAMES <span class="n">{len(games)} games</span></div>',
             unsafe_allow_html=True,
         )
-        st.caption("Colored border = weather alert for that game: ⬜ snow · 🟦 rain · 🟩 wind 15+ mph")
 
+        all_cards = []
         for g in games:
-            away_last, home_last = g["away"].split()[-1].upper(), g["home"].split()[-1].upper()
-            away_logo, home_logo = LOGO_URL.format(abbr=g["away_abbr"]), LOGO_URL.format(abbr=g["home_abbr"])
+            away_abbr, home_abbr = g["away_abbr"], g["home_abbr"]
+            away_logo, home_logo = LOGO_URL.format(abbr=away_abbr), LOGO_URL.format(abbr=home_abbr)
             alert_kind = weather_alert_kind(g.get("weather"))
             is_best_bet = g in best_bet_games
 
@@ -312,42 +288,39 @@ with tab_week:
             if alert_kind:
                 label = {"snow": "SNOW", "rain": "RAIN", "wind": "WIND 15+"}[alert_kind]
                 top_pills.append(f'<span class="pill pill-weather {WEATHER_PILL_CLASS[alert_kind]}">{label}</span>')
-            card.append(f'<div class="eb-card-top"><span>{"".join(top_pills)}</span><span class="eb-meta" style="margin:0">{g["kickoff_display"]}</span></div>')
+            card.append(f'<div class="eb-card-top">{"".join(top_pills)}</div>')
 
-            if g["rivalry"]:
-                card.append('<div class="eb-meta info">⚔ RIVALRY GAME</div>')
-
+            # Home always on the left, away on the right -- matches the desktop/print board's convention.
             card.append(
                 '<div class="eb-team-names">'
-                f'<div class="eb-team away">{away_last}<img src="{away_logo}" alt=""></div>'
+                f'<div class="eb-team home"><img src="{home_logo}" alt="">{home_abbr}</div>'
                 '<div class="eb-at">@</div>'
-                f'<div class="eb-team home"><img src="{home_logo}" alt="">{home_last}</div>'
+                f'<div class="eb-team away">{away_abbr}<img src="{away_logo}" alt=""></div>'
                 "</div>"
             )
 
-            spread_text = "—" if g["dk_spread"] is None else f"{home_last} {g['dk_spread']:+g}"
+            spread_text = "—" if g["dk_spread"] is None else f"{home_abbr} {g['dk_spread']:+g}"
             total_text = "—" if g["dk_total"] is None else f'{g["dk_total"]:g}'
             card.append(f'<div class="dkline">DraftKings: <b>{spread_text}</b> &nbsp;·&nbsp; O/U <b>{total_text}</b></div>')
 
+            card.append(f'<div class="eb-meta">{g["venue_label"]}</div>')
+
             if g.get("weather"):
                 w = g["weather"]
-                cls = "warn" if w.get("alert") else ""
                 text = (w["text"] or "").replace("\n", " · ")
-                card.append(f'<div class="eb-meta {cls}">{w.get("icon") or ""} {text}</div>')
+                weather_line = text if w.get("dome") else (w.get("icon", "") + " " + text).strip()
+            else:
+                weather_line = "Forecast pending"
+            card.append(f'<div class="eb-meta">{weather_line}</div>')
 
-            if g["neutral_site"] or g["home_noise"] == "elite" or g.get("referee_line"):
-                noise = " \U0001F50A" if g["home_noise"] == "elite" else ""
-                label = g["venue_label"] if g["neutral_site"] else f"Home field: {g['venue_label']}"
-                card.append(f'<div class="eb-meta">{label}{noise}</div>')
-                if g.get("referee_line"):
-                    card.append(f'<div class="eb-meta">{g["referee_line"]}</div>')
+            card.append(f'<div class="eb-meta">{g.get("referee_line") or "Referee · pending assignment"}</div>')
 
             card.append('<div class="section-label" style="text-align:center">PROJECTED SCORE</div>')
             if g["projection"]:
                 p = g["projection"]
                 card.append(
-                    f'<div class="projscore"><span class="away">{away_last} {p["away_score"]}</span>'
-                    f'<span class="dash"> — </span><span class="home">{home_last} {p["home_score"]}</span></div>'
+                    f'<div class="projscore"><span class="home">{home_abbr} {p["home_score"]}</span>'
+                    f'<span class="dash"> — </span><span class="away">{away_abbr} {p["away_score"]}</span></div>'
                 )
                 model_spread = p["home_score"] - p["away_score"]
                 spread_edge_row = (
@@ -363,63 +336,47 @@ with tab_week:
                     '<tr><td>Total</td><td colspan="2" style="color:var(--text-dim)">pending</td></tr>'
                 )
                 card.append(f'<table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr>{spread_edge_row}{total_edge_row}</table>')
-                card.append(f'<div class="eb-meta">Your spread: {g["your_spread_text"]}</div>')
             else:
                 card.append(f'<div class="projscore dash">Lean index {g["confidence_score"]:g}/10 — {g["confidence_label"]}</div>')
 
-            if g["home_bets"] is not None:
-                card.append(
-                    '<div class="splitrow"><div class="splitlabel"><span>SPREAD — BETS</span></div>'
-                    f'<div class="bar"><div class="bar-a" style="width:{g["home_bets"]}%"></div><div class="bar-b" style="width:{100 - g["home_bets"]}%"></div></div>'
-                    f'<div class="barnum">{home_last} {g["home_bets"]}% / {away_last} {g["away_bets"]}%</div>'
-                    '<div class="splitlabel" style="margin-top:4px"><span>SPREAD — HANDLE</span></div>'
-                    f'<div class="bar"><div class="bar-a" style="width:{g["home_handle"]}%"></div><div class="bar-b" style="width:{100 - g["home_handle"]}%"></div></div>'
-                    f'<div class="barnum">{home_last} {g["home_handle"]}% / {away_last} {g["away_handle"]}%</div></div>'
-                )
+            if g["home_bets"] is not None or g.get("over_bets") is not None:
+                split_html = ['<div class="section-label">PUBLIC BETTING SPLITS</div><div class="splitrow">']
+                if g["home_bets"] is not None:
+                    split_html.append(
+                        '<div class="splitlabel"><span>SPREAD — BETS</span></div>'
+                        f'<div class="bar"><div class="bar-a" style="width:{g["home_bets"]}%"></div><div class="bar-b" style="width:{100 - g["home_bets"]}%"></div></div>'
+                        f'<div class="barnum">{home_abbr} {g["home_bets"]}% / {away_abbr} {g["away_bets"]}%</div>'
+                        '<div class="splitlabel" style="margin-top:4px"><span>SPREAD — HANDLE</span></div>'
+                        f'<div class="bar"><div class="bar-a" style="width:{g["home_handle"]}%"></div><div class="bar-b" style="width:{100 - g["home_handle"]}%"></div></div>'
+                        f'<div class="barnum">{home_abbr} {g["home_handle"]}% / {away_abbr} {g["away_handle"]}%</div>'
+                    )
+                if g.get("over_bets") is not None:
+                    split_html.append(
+                        '<div class="splitlabel" style="margin-top:4px"><span>TOTAL — BETS</span></div>'
+                        f'<div class="bar"><div class="bar-c" style="width:{g["over_bets"]}%"></div><div class="bar-d" style="width:{100 - g["over_bets"]}%"></div></div>'
+                        f'<div class="barnum">OVER {g["over_bets"]}% / UNDER {g["under_bets"]}%</div>'
+                        '<div class="splitlabel" style="margin-top:4px"><span>TOTAL — HANDLE</span></div>'
+                        f'<div class="bar"><div class="bar-c" style="width:{g["over_handle"]}%"></div><div class="bar-d" style="width:{100 - g["over_handle"]}%"></div></div>'
+                        f'<div class="barnum">OVER {g["over_handle"]}% / UNDER {g["under_handle"]}%</div>'
+                    )
+                split_html.append("</div>")
+                card.append("".join(split_html))
 
-            results = []
-            if g["cover_text"]:
-                results.append(f'<div class="eb-meta" style="font-weight:700">FINAL {g["home_score"]}–{g["away_score"]} · {g["cover_text"]}</div>')
-            if g["pick_result"] or g["pick_side"]:
-                pick_team = g["home"] if g["pick_side"] == "home" else g["away"]
-                result = g["pick_result"]
-                cls = "good" if result == "WON" else ("bad" if result == "LOST" else "")
-                glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
-                label = "BET" if g["bet_star"] else "PICK"
-                results.append(f'<div class="eb-meta {cls}">{glyph}Your {label.lower()}: {pick_team.split()[-1].upper()}{" (" + result + ")" if result else ""}</div>')
-            if g["ou_pick"]:
-                result = g["ou_result"]
-                cls = "good" if result == "WON" else ("bad" if result == "LOST" else "")
-                results.append(f'<div class="eb-meta {cls}">Your O/U pick ({g["ou_pick"].upper()}): {result or "PENDING"}</div>')
-            if g["auto_pick"]:
-                auto = g["auto_pick"]
-                result = auto["result"]
-                cls = "good" if result == "WON" else ("bad" if result == "LOST" else "")
-                glyph = "✓ " if result == "WON" else ("✗ " if result == "LOST" else "")
-                results.append(f'<div class="eb-meta {cls}" style="font-weight:700">{glyph}★ Algorithm pick: {auto["team"].split()[-1].upper()}</div>')
-            card.append("".join(results))
-
-            badges = grade_chip("AWAY OFF", g["away_grade"]["offense"], g["away_grade"]["offense_colors"]) \
-                + grade_chip("AWAY DEF", g["away_grade"]["defense"], g["away_grade"]["defense_colors"]) \
-                + grade_chip("HOME OFF", g["home_grade"]["offense"], g["home_grade"]["offense_colors"]) \
-                + grade_chip("HOME DEF", g["home_grade"]["defense"], g["home_grade"]["defense_colors"])
+            badges = grade_chip(f"{home_abbr} OFF", g["home_grade"]["offense"], g["home_grade"]["offense_colors"]) \
+                + grade_chip(f"{home_abbr} DEF", g["home_grade"]["defense"], g["home_grade"]["defense_colors"]) \
+                + grade_chip(f"{away_abbr} OFF", g["away_grade"]["offense"], g["away_grade"]["offense_colors"]) \
+                + grade_chip(f"{away_abbr} DEF", g["away_grade"]["defense"], g["away_grade"]["defense_colors"])
 
             report_items = []
             if g["auto_pick"]:
                 report_items.append(g["auto_pick"]["note"])
             if g["away_questionable"] or g["away_out"]:
-                report_items.append(f'{away_last} injuries — Questionable: {g["away_questionable"] or "none"} · Out/IR: {g["away_out"] or "none"}')
+                report_items.append(f'{away_abbr} injuries — Questionable: {g["away_questionable"] or "none"} · Out/IR: {g["away_out"] or "none"}')
             if g["home_questionable"] or g["home_out"]:
-                report_items.append(f'{home_last} injuries — Questionable: {g["home_questionable"] or "none"} · Out/IR: {g["home_out"] or "none"}')
-            if g.get("referee"):
-                ref = g["referee"]
-                over_text = f"{ref['over_pct']:.1f}%" if ref["over_pct"] is not None else "n/a"
-                games_text = f"{ref['games']} games" if ref["games"] is not None else "no career sample yet"
-                if ref["home_ats_pct"] is not None:
-                    report_items.append(f"On the call: {ref['referee'].upper()} · career Home ATS {ref['home_ats_pct']:.1f}% ({games_text}) · Over {over_text}")
-                else:
-                    report_items.append(f"On the call: {ref['referee'].upper()} · {games_text}")
-            report_html = "".join(f"<li>{item}</li>" for item in report_items) or "<li>No unusual factors on paper.</li>"
+                report_items.append(f'{home_abbr} injuries — Questionable: {g["home_questionable"] or "none"} · Out/IR: {g["home_out"] or "none"}')
+            if not report_items:
+                report_items.append("No unusual factors on paper — this number is mostly the power-rating gap plus standard home field.")
+            report_html = "".join(f"<li>{item}</li>" for item in report_items)
 
             card.append(
                 f'<div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>{g["confidence_score"]:g}/10</b></div>'
@@ -429,12 +386,14 @@ with tab_week:
             )
 
             card.append("</div>")
-            st.markdown("".join(card), unsafe_allow_html=True)
+            all_cards.append("".join(card))
+
+        st.markdown(f'<div class="eb-grid">{"".join(all_cards)}</div>', unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# TAB 2: Power Rankings -- mirrors Board.render_rankings().
+# Power Rankings -- mirrors Board.render_rankings().
 # ---------------------------------------------------------------------------
-with tab_rankings:
+elif view == "Power Rankings":
     rankings = snap.get("rankings", {})
     st.caption(rankings.get("grade_guide", ""))
     st.caption(rankings.get("stats_state", ""))

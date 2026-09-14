@@ -596,6 +596,7 @@ def build_game_payload(c, g, unit_grades, team_rank, team_rank_count):
         "dk_spread": g["dk_spread"], "dk_total": g["dk_total"],
         "opening_spread": opening["home_spread"] if opening else None, "opening_text": opening_text,
         "home_bets": g["home_bets"], "home_handle": g["home_handle"], "away_bets": g["away_bets"], "away_handle": g["away_handle"],
+        "over_bets": g["over_bets"], "over_handle": g["over_handle"], "under_bets": g["under_bets"], "under_handle": g["under_handle"],
         "home_score": g["home_score"], "away_score": g["away_score"], "game_status": g["game_status"], "cover_text": cover_text,
         "weather": weather_payload, "referee_line": ref_line, "referee": assignment,
         "projection": projection, "your_spread_text": your_spread_text,
