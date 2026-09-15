@@ -548,6 +548,7 @@ class Board(tk.Tk):
         # callback on this queue; _pump_ui_queue, running solely on the main thread,
         # is the only thing that ever calls it.
         self._ui_queue=queue.Queue(); self.unit_grades={}; self.stats_state="Stats not loaded"; self._stats_loading=False; self._auto_update_job=None
+        self.player_grades={}; self.player_stats_state="Player stats not loaded"; self._player_stats_loading=False
         # build() + a render()/logo-fetch pass used to run synchronously here for the
         # on-screen dashboard, costing ~2s before the window even appeared. That
         # dashboard is now withdrawn and never shown, so none of that needs to run
@@ -680,7 +681,7 @@ class Board(tk.Tk):
         if not 1 <= self.week.get() <= 18: self.week.set(1)
 
     def set_week(self, number):
-        self.week.set(number); self.unit_grades={}; self.refresh_unit_grades(); self.view="schedule"; self.subtitle.configure(text="Teams, DraftKings line, total, public action, and final cover result")
+        self.week.set(number); self.unit_grades={}; self.refresh_unit_grades(); self.player_grades={}; self.refresh_player_grades(); self.view="schedule"; self.subtitle.configure(text="Teams, DraftKings line, total, public action, and final cover result")
         if not self.matchup_header.winfo_manager(): self.matchup_header.pack(fill="x",before=self.outer)
         self.render(preserve_scroll=False)
 
@@ -737,6 +738,7 @@ class Board(tk.Tk):
         (writes + opens once) and _refresh_print_html (writes only, used to
         keep an already-open browser tab current as new data comes in)."""
         self.ensure_unit_grades()
+        self.ensure_player_grades()
         self._compute_team_ranks()
         with con() as c:
             games=c.execute("SELECT * FROM games WHERE week=? ORDER BY kickoff",(week_number,)).fetchall()
@@ -1016,6 +1018,32 @@ document.addEventListener('DOMContentLoaded',function(){
         # def_z is a better defense too -- net strength adds the two, doesn't subtract.
         return (off_z or 0.0) + (def_z or 0.0)
 
+    STARTER_POSITION_WEIGHTS = {'QB': 0.5, 'RB': 0.15, 'WR': 0.2, 'TE': 0.15}
+
+    def starter_grade_delta(self, name):
+        """How much better/worse this team's CURRENT starters (QB/RB/WR/TE,
+        individually EPA-graded -- see player_grades()) are grading than the
+        team's own season-long offense z-score. team_epa_net()/rating_margin()
+        already capture the team's aggregate performance; this is the
+        incremental signal from knowing who's actually taking the snaps this
+        week -- an elite starter on an average-grading offense (or a backup
+        stepping in for one) moves the number a bit further than the team
+        aggregate alone would suggest. None until both the team off_z and at
+        least one starter's z-score are available."""
+        abbr=dict(TEAMS).get(name, "").upper()
+        abbr={"LAR":"LA","WSH":"WAS"}.get(abbr,abbr)
+        off_z=self.unit_grades.get(abbr,{}).get('off_z')
+        if off_z is None: return None
+        starters=team_position_starters(self.player_grades, abbr)
+        weighted_z=0.0; weight_total=0.0
+        for pg, weight in self.STARTER_POSITION_WEIGHTS.items():
+            entry=starters.get(pg)
+            if not entry: continue
+            _, v = entry
+            weighted_z += v['z']*weight; weight_total += weight
+        if weight_total <= 0: return None
+        return (weighted_z/weight_total) - off_z
+
     def grade_line(self, name, short=False):
         off,defense,basis=self.team_grade_values(name)
         if short: return f"O {off} / D {defense}"
@@ -1130,6 +1158,36 @@ document.addEventListener('DOMContentLoaded',function(){
             self.unit_grades=result; self.stats_state=state
         except Exception as ex:
             self.stats_state=f"Stats failed: {ex}"
+
+    def refresh_player_grades(self):
+        """Same threaded cache-then-render pattern as refresh_unit_grades(), for
+        the individual QB/RB/WR/TE grades (_load_player_grades)."""
+        if self._player_stats_loading: return
+        self._player_stats_loading=True
+        week=self.week.get()
+        def worker():
+            try:
+                result,state=self._load_player_grades(week)
+                def done():
+                    self._player_stats_loading=False
+                    if self.week.get()!=week: self.refresh_player_grades(); return
+                    self.player_grades=result; self.player_stats_state=state; self.queue_render()
+                self._ui_queue.put(done)
+            except Exception as ex:
+                def failed(ex=ex):
+                    self._player_stats_loading=False; self.player_stats_state=f"Player stats failed: {ex}"; self.queue_render()
+                self._ui_queue.put(failed)
+        threading.Thread(target=worker,daemon=True).start()
+
+    def ensure_player_grades(self):
+        """Same synchronous-fallback pattern as ensure_unit_grades(), for the
+        individual QB/RB/WR/TE grades."""
+        if self.player_grades: return
+        try:
+            result,state=self._load_player_grades(self.week.get())
+            self.player_grades=result; self.player_stats_state=state
+        except Exception as ex:
+            self.player_stats_state=f"Player stats failed: {ex}"
 
     def weather_border_color(self,event_id):
         """Card-border color from this game's weather_flags() alert string (see
@@ -1246,6 +1304,15 @@ document.addEventListener('DOMContentLoaded',function(){
             # consensus-driven number.
             epa=max(-1.5,min(1.5,(home_net-away_net)*0.6))
         factors.append(("EPA power (blended, prior+current season)",epa))
+        home_starter_delta=self.starter_grade_delta(home); away_starter_delta=self.starter_grade_delta(away)
+        starter_edge=0.0
+        if home_starter_delta is not None and away_starter_delta is not None:
+            # Incremental signal on top of the team-aggregate EPA factor above:
+            # how much better/worse are the ACTUAL starters this week than each
+            # team's own season-long grade. Deliberately smaller cap/weight than
+            # the aggregate EPA factor since it's a finer-grained, noisier read.
+            starter_edge=max(-1.0,min(1.0,(home_starter_delta-away_starter_delta)*0.4))
+        factors.append(("Starter grade vs team average (QB/RB/WR/TE)",starter_edge))
         factors.append(("Referee crew (career home ATS lean)",self.referee_factor(g["week"],home,away)))
         return factors
 
@@ -1454,6 +1521,7 @@ document.addEventListener('DOMContentLoaded',function(){
         self.refresh_power_rankings()
         self.refresh_weather()
         self.refresh_unit_grades()
+        self.refresh_player_grades()
         self.refresh_referees()
         self._auto_update_job=self.after(AUTO_UPDATE_MS, self.auto_update)
 

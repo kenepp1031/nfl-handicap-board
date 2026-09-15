@@ -175,6 +175,30 @@ def team_epa_net(unit_grades, name):
     return (off_z or 0.0) + (def_z or 0.0)
 
 
+STARTER_POSITION_WEIGHTS = {"QB": 0.5, "RB": 0.15, "WR": 0.2, "TE": 0.15}
+
+
+def starter_grade_delta(unit_grades, player_grade_values, name):
+    """Port of Board.starter_grade_delta -- see its docstring in the .pyw."""
+    abbr = abbr_for(name)
+    off_z = unit_grades.get(abbr, {}).get("off_z")
+    if off_z is None:
+        return None
+    starters = D.team_position_starters(player_grade_values, abbr)
+    weighted_z = 0.0
+    weight_total = 0.0
+    for pg, weight in STARTER_POSITION_WEIGHTS.items():
+        entry = starters.get(pg)
+        if not entry:
+            continue
+        _, v = entry
+        weighted_z += v["z"] * weight
+        weight_total += weight
+    if weight_total <= 0:
+        return None
+    return (weighted_z / weight_total) - off_z
+
+
 # ---------------------------------------------------------------------------
 # Plain-function ports of Board's calculation methods. `c` is a read-only
 # sqlite3 connection (row_factory=Row) to nfl_handicapping_board.db.
@@ -342,7 +366,7 @@ def rating_margin(home_rating, away_rating, home_name, away_name=None):
     return D.round_half(margin)
 
 
-def automated_factors(c, g, home_rest, away_rest, unit_grades, week):
+def automated_factors(c, g, home_rest, away_rest, unit_grades, player_grade_values, week):
     home, away = g["home"], g["away"]
     factors = [("Injury report", injury_factor(c, home, away))]
     venue = 0.0 if (home, away) in D.NEUTRAL_SITES else (0.50 if home in D.NOISE_ELITE else (0.25 if home in D.NOISE_LOUD else 0.0))
@@ -376,13 +400,19 @@ def automated_factors(c, g, home_rest, away_rest, unit_grades, week):
     if home_net is not None and away_net is not None:
         epa = max(-1.5, min(1.5, (home_net - away_net) * 0.6))
     factors.append(("EPA power (blended, prior+current season)", epa))
+    home_starter_delta = starter_grade_delta(unit_grades, player_grade_values, home)
+    away_starter_delta = starter_grade_delta(unit_grades, player_grade_values, away)
+    starter_edge = 0.0
+    if home_starter_delta is not None and away_starter_delta is not None:
+        starter_edge = max(-1.0, min(1.0, (home_starter_delta - away_starter_delta) * 0.4))
+    factors.append(("Starter grade vs team average (QB/RB/WR/TE)", starter_edge))
     factors.append(("Referee crew (career home ATS lean)", referee_factor(c, week, home, away)))
     return factors
 
 
-def projected_game(c, g, home_team, away_team, home_rest, away_rest, unit_grades):
+def projected_game(c, g, home_team, away_team, home_rest, away_rest, unit_grades, player_grade_values):
     margin = -rating_margin(home_team["consensus_rating"], away_team["consensus_rating"], g["home"], g["away"])
-    factors = automated_factors(c, g, home_rest, away_rest, unit_grades, g["week"])
+    factors = automated_factors(c, g, home_rest, away_rest, unit_grades, player_grade_values, g["week"])
     margin = D.round_half(margin + sum(value for _, value in factors))
     off_h, def_h, _ = team_grade_values(unit_grades, g["home"])
     off_a, def_a, _ = team_grade_values(unit_grades, g["away"])
@@ -402,15 +432,15 @@ def projected_game(c, g, home_team, away_team, home_rest, away_rest, unit_grades
     return dict(home_score=home_score, away_score=away_score, total=total, home_spread=projected_spread, edge=edge, factors=factors)
 
 
-def confidence_score(c, g, home_team, away_team, home_rest, away_rest, unit_grades):
+def confidence_score(c, g, home_team, away_team, home_rest, away_rest, unit_grades, player_grade_values):
     breakdown = []
     power = 0.0
     if home_team["consensus_rating"] is not None and away_team["consensus_rating"] is not None and g["dk_spread"] is not None:
-        projection = projected_game(c, g, home_team, away_team, home_rest, away_rest, unit_grades)
+        projection = projected_game(c, g, home_team, away_team, home_rest, away_rest, unit_grades, player_grade_values)
         edge = projection["edge"] or 0.0
         power = max(-2.0, min(2.0, edge * (2 / 3)))
     breakdown.append(("Projected spread vs market", power, True))
-    for label, value in automated_factors(c, g, home_rest, away_rest, unit_grades, g["week"]):
+    for label, value in automated_factors(c, g, home_rest, away_rest, unit_grades, player_grade_values, g["week"]):
         breakdown.append((label, max(-1.0, min(1.0, value)), False))
     breakdown.append(("Line movement", line_movement_factor(c, g["event_id"], g["dk_spread"]), True))
     form = form_factor(c, g["home"], g["kickoff"]) - form_factor(c, g["away"], g["kickoff"])
@@ -603,7 +633,7 @@ def build_game_payload(c, g, unit_grades, player_grade_values, team_rank, team_r
     projection = None
     your_spread_text = None
     if home_team["consensus_rating"] is not None and away_team["consensus_rating"] is not None:
-        projection = projected_game(c, g, home_team, away_team, home_rest, away_rest, unit_grades)
+        projection = projected_game(c, g, home_team, away_team, home_rest, away_rest, unit_grades, player_grade_values)
         if projection["home_spread"] == 0:
             your_spread_text = "PICK 'EM"
         else:
@@ -611,7 +641,7 @@ def build_game_payload(c, g, unit_grades, player_grade_values, team_rank, team_r
             fav_spread = projection["home_spread"] if projection["home_spread"] < 0 else -projection["home_spread"]
             your_spread_text = f"{fav.split()[-1].upper()} {fav_spread:+g}"
 
-    score, breakdown = confidence_score(c, g, home_team, away_team, home_rest, away_rest, unit_grades)
+    score, breakdown = confidence_score(c, g, home_team, away_team, home_rest, away_rest, unit_grades, player_grade_values)
     label, _ = confidence_label(score, home, away)
 
     cover_text = None
@@ -680,15 +710,15 @@ def build_game_payload(c, g, unit_grades, player_grade_values, team_rank, team_r
     }
 
 
-def compute_top_plays(c, games, unit_grades):
+def compute_top_plays(c, games, unit_grades, player_grade_values):
     top_plays = []
     for g in games:
         home_team, away_team = team_row(c, g["home"]), team_row(c, g["away"])
         if home_team["consensus_rating"] is None or away_team["consensus_rating"] is None or g["dk_spread"] is None:
             continue
         home_rest, away_rest = days_rest(c, g["home"], g["kickoff"]), days_rest(c, g["away"], g["kickoff"])
-        projection = projected_game(c, g, home_team, away_team, home_rest, away_rest, unit_grades)
-        score, _ = confidence_score(c, g, home_team, away_team, home_rest, away_rest, unit_grades)
+        projection = projected_game(c, g, home_team, away_team, home_rest, away_rest, unit_grades, player_grade_values)
+        score, _ = confidence_score(c, g, home_team, away_team, home_rest, away_rest, unit_grades, player_grade_values)
         if abs(score - 5.0) < 1:
             continue
         fav = g["home"] if projection["home_spread"] < 0 else g["away"]
@@ -849,7 +879,7 @@ def main():
         team_rank, team_rank_count = compute_team_ranks(c)
         games = c.execute("SELECT * FROM games WHERE week=? ORDER BY kickoff", (week,)).fetchall()
         games_by_week[str(week)] = [build_game_payload(c, g, unit_grades, player_grade_values, team_rank, team_rank_count) for g in games]
-        top_plays_by_week[str(week)] = compute_top_plays(c, games, unit_grades)
+        top_plays_by_week[str(week)] = compute_top_plays(c, games, unit_grades, player_grade_values)
 
     current_week = current_week_from_schedule(weeks, games_by_week)
     current_unit_grades, current_stats_state = load_unit_grades(current_week)
