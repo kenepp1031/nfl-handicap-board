@@ -142,6 +142,7 @@ st.markdown(
     table.edge td.edgeval{color:var(--gold2);font-weight:700;}
     .splitrow{margin-bottom:8px;}
     .splitlabel{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:3px;}
+    .sharp{color:var(--gold2);font-weight:700;}
     .bar{height:7px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:3px;background:#1a2136;}
     .bar-a{background:var(--teal);} .bar-b{background:var(--away);}
     .bar-c{background:var(--gold2);} .bar-d{background:var(--blue);}
@@ -342,8 +343,10 @@ elif view == "This Week":
             if g["home_bets"] is not None or g.get("over_bets") is not None:
                 split_html = ['<div class="section-label">PUBLIC BETTING SPLITS</div><div class="splitrow">']
                 if g["home_bets"] is not None:
+                    spread_sharp = g.get("sharp_side")
+                    spread_sharp_flag = f'<span class="sharp">⚡ Sharp: {spread_sharp.split()[-1].upper()}</span>' if spread_sharp else ""
                     split_html.append(
-                        '<div class="splitlabel"><span>SPREAD — BETS</span></div>'
+                        f'<div class="splitlabel"><span>SPREAD — BETS</span>{spread_sharp_flag}</div>'
                         f'<div class="bar"><div class="bar-a" style="width:{g["home_bets"]}%"></div><div class="bar-b" style="width:{100 - g["home_bets"]}%"></div></div>'
                         f'<div class="barnum">{home_abbr} {g["home_bets"]}% / {away_abbr} {g["away_bets"]}%</div>'
                         '<div class="splitlabel" style="margin-top:4px"><span>SPREAD — HANDLE</span></div>'
@@ -351,8 +354,10 @@ elif view == "This Week":
                         f'<div class="barnum">{home_abbr} {g["home_handle"]}% / {away_abbr} {g["away_handle"]}%</div>'
                     )
                 if g.get("over_bets") is not None:
+                    total_sharp = g.get("sharp_total")
+                    total_sharp_flag = f'<span class="sharp">⚡ Sharp: {total_sharp}</span>' if total_sharp else ""
                     split_html.append(
-                        '<div class="splitlabel" style="margin-top:4px"><span>TOTAL — BETS</span></div>'
+                        f'<div class="splitlabel" style="margin-top:4px"><span>TOTAL — BETS</span>{total_sharp_flag}</div>'
                         f'<div class="bar"><div class="bar-c" style="width:{g["over_bets"]}%"></div><div class="bar-d" style="width:{100 - g["over_bets"]}%"></div></div>'
                         f'<div class="barnum">OVER {g["over_bets"]}% / UNDER {g["under_bets"]}%</div>'
                         '<div class="splitlabel" style="margin-top:4px"><span>TOTAL — HANDLE</span></div>'
@@ -362,10 +367,17 @@ elif view == "This Week":
                 split_html.append("</div>")
                 card.append("".join(split_html))
 
+            # Team-level OFF/DEF (the only grade possible for OL/DEF -- no public
+            # per-player EPA exists for those positions) plus real individual
+            # QB/RB/WR/TE grades for each team's current starters, when nflverse's
+            # per-player feed has a qualifying sample for them.
             badges = grade_chip(f"{home_abbr} OFF", g["home_grade"]["offense"], g["home_grade"]["offense_colors"]) \
                 + grade_chip(f"{home_abbr} DEF", g["home_grade"]["defense"], g["home_grade"]["defense_colors"]) \
                 + grade_chip(f"{away_abbr} OFF", g["away_grade"]["offense"], g["away_grade"]["offense_colors"]) \
                 + grade_chip(f"{away_abbr} DEF", g["away_grade"]["defense"], g["away_grade"]["defense_colors"])
+            for side_abbr, positions in ((home_abbr, g.get("home_positions") or []), (away_abbr, g.get("away_positions") or [])):
+                for pos in positions:
+                    badges += grade_chip(f"{side_abbr} {pos['position']}", pos["grade"], pos["colors"])
 
             report_items = []
             if g["auto_pick"]:

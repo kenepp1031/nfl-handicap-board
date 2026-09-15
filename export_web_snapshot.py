@@ -126,6 +126,33 @@ def load_unit_grades(week: int):
     return result, state
 
 
+def load_player_grades(week: int):
+    """Same shape as load_unit_grades() but for individual QB/RB/WR/TE grades
+    -- ports Board._load_player_grades exactly."""
+    STATS_CACHE.mkdir(exist_ok=True)
+    data = {}
+    notes = []
+    for year in (2025, 2026):
+        path = STATS_CACHE / f"player_{year}.csv"
+        fresh = path.exists() and datetime.now().timestamp() - path.stat().st_mtime < 86400
+        if not fresh:
+            try:
+                with urlopen(Request(D.PLAYER_STATS_URL.format(year=year), headers={"User-Agent": "NFL personal board"}), timeout=30) as response:
+                    raw = response.read().decode("utf-8")
+                D.player_units(raw, year)
+                path.write_text(raw, encoding="utf-8")
+            except Exception:
+                notes.append(f"{year} feed unavailable" + ("; cached data" if path.exists() else ""))
+        data[year] = D.player_units(path.read_text(encoding="utf-8"), year, week if year == 2026 else 99) if path.exists() else {}
+    result = D.player_grades(data[2025], data[2026])
+    state = f"nflverse per-player EPA · before Week {week} · daily downloads · " + ("; ".join(notes) if notes else "cached feeds available")
+    return result, state
+
+
+def team_position_starters(player_grade_values, team):
+    return D.team_position_starters(player_grade_values, abbr_for(team))
+
+
 def team_grade_values(unit_grades, name):
     abbr = abbr_for(name)
     item = unit_grades.get(abbr, {})
@@ -510,7 +537,30 @@ def grade_payload(unit_grades, name):
     }
 
 
-def build_game_payload(c, g, unit_grades, team_rank, team_rank_count):
+POSITION_LABEL_ORDER = ("QB", "RB", "WR", "TE")
+
+
+def player_position_payload(player_grade_values, team):
+    """QB/RB/WR/TE individual grades for `team`'s current starters (highest
+    season-to-date usage per group that cleared the z-score qualifying bar) --
+    OL/DEF have no public per-player EPA data, so they stay on the team-level
+    offense/defense grade (grade_payload) instead of appearing here."""
+    starters = team_position_starters(player_grade_values, team)
+    out = []
+    for pg in POSITION_LABEL_ORDER:
+        entry = starters.get(pg)
+        if not entry: continue
+        name, v = entry
+        grade = v["grade"]
+        out.append({
+            "position": pg, "player": name, "grade": grade,
+            "colors": GRADE_COLORS.get(grade, GRADE_COLORS["N/A"]),
+            "games": v["games"],
+        })
+    return out
+
+
+def build_game_payload(c, g, unit_grades, player_grade_values, team_rank, team_rank_count):
     home, away = g["home"], g["away"]
     home_team, away_team = team_row(c, home), team_row(c, away)
     home_rest, away_rest = days_rest(c, home, g["kickoff"]), days_rest(c, away, g["kickoff"])
@@ -572,6 +622,25 @@ def build_game_payload(c, g, unit_grades, team_rank, team_rank_count):
             result = g["home_score"] - g["away_score"] + g["dk_spread"]
             cover_text = f"{home.split()[-1].upper()} COVERED" if result > 0 else (f"{away.split()[-1].upper()} COVERED" if result < 0 else "PUSH")
 
+    # Sharp-money flag: when a side's handle% (money) outpaces its bets%
+    # (ticket count) by a wide margin, that's the textbook signature of a few
+    # large/sharp bettors moving the number rather than the general public --
+    # a standard, widely-used handle-vs-bets divergence read, computed here
+    # straight from the real DraftKings splits captured above.
+    SHARP_DIVERGENCE_THRESHOLD = 8.0
+    sharp_side = None
+    if g["home_bets"] is not None and g["away_bets"] is not None:
+        div_home = (g["home_handle"] or 0) - (g["home_bets"] or 0)
+        div_away = (g["away_handle"] or 0) - (g["away_bets"] or 0)
+        if max(abs(div_home), abs(div_away)) >= SHARP_DIVERGENCE_THRESHOLD:
+            sharp_side = home if div_home > div_away else away
+    sharp_total = None
+    if g["over_bets"] is not None and g["under_bets"] is not None:
+        div_over = (g["over_handle"] or 0) - (g["over_bets"] or 0)
+        div_under = (g["under_handle"] or 0) - (g["under_bets"] or 0)
+        if max(abs(div_over), abs(div_under)) >= SHARP_DIVERGENCE_THRESHOLD:
+            sharp_total = "OVER" if div_over > div_under else "UNDER"
+
     auto_payload = None
     if g["auto_pick_side"]:
         auto_payload = {
@@ -591,12 +660,15 @@ def build_game_payload(c, g, unit_grades, team_rank, team_rank_count):
         "home_rating": home_team["consensus_rating"], "away_rating": away_team["consensus_rating"],
         "home_rank": team_rank.get(home), "away_rank": team_rank.get(away), "team_rank_count": team_rank_count,
         "home_grade": grade_payload(unit_grades, home), "away_grade": grade_payload(unit_grades, away),
+        "home_positions": player_position_payload(player_grade_values, home),
+        "away_positions": player_position_payload(player_grade_values, away),
         "home_rest": home_rest, "away_rest": away_rest,
         "home_questionable": home_q, "home_out": home_out, "away_questionable": away_q, "away_out": away_out,
         "dk_spread": g["dk_spread"], "dk_total": g["dk_total"],
         "opening_spread": opening["home_spread"] if opening else None, "opening_text": opening_text,
         "home_bets": g["home_bets"], "home_handle": g["home_handle"], "away_bets": g["away_bets"], "away_handle": g["away_handle"],
         "over_bets": g["over_bets"], "over_handle": g["over_handle"], "under_bets": g["under_bets"], "under_handle": g["under_handle"],
+        "sharp_side": sharp_side, "sharp_total": sharp_total,
         "home_score": g["home_score"], "away_score": g["away_score"], "game_status": g["game_status"], "cover_text": cover_text,
         "weather": weather_payload, "referee_line": ref_line, "referee": assignment,
         "projection": projection, "your_spread_text": your_spread_text,
@@ -772,10 +844,11 @@ def main():
     last_stats_state = "stats unavailable"
     for week in weeks:
         unit_grades, stats_state = load_unit_grades(week)
+        player_grade_values, _player_stats_state = load_player_grades(week)
         last_stats_state = stats_state
         team_rank, team_rank_count = compute_team_ranks(c)
         games = c.execute("SELECT * FROM games WHERE week=? ORDER BY kickoff", (week,)).fetchall()
-        games_by_week[str(week)] = [build_game_payload(c, g, unit_grades, team_rank, team_rank_count) for g in games]
+        games_by_week[str(week)] = [build_game_payload(c, g, unit_grades, player_grade_values, team_rank, team_rank_count) for g in games]
         top_plays_by_week[str(week)] = compute_top_plays(c, games, unit_grades)
 
     current_week = current_week_from_schedule(weeks, games_by_week)

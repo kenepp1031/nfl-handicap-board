@@ -66,6 +66,82 @@ def grades(prior, current):
                 item[unit+'_z'] = z
     return values
 
+PLAYER_STATS_URL = 'https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{year}.csv'
+# No public per-play EPA exists for individual offensive linemen or defenders
+# (unlike QB/RB/WR/TE, which nflverse tags to a passer/rusher/receiver on every
+# play) -- OL and DEF stay on the team-level offense/defense grade from
+# grades() above; only these four skill positions get a real individual grade.
+PLAYER_POSITION_GROUPS = ('QB', 'RB', 'WR', 'TE')
+PLAYER_MIN_USAGE = {'QB': 10, 'RB': 5, 'WR': 5, 'TE': 3}  # attempts+sacks / carries+targets / targets, season-to-date
+
+def player_units(csv_text, year, before_week=99):
+    """Per-player EPA-per-usage for QB (pass EPA per dropback), RB (rush+rec EPA
+    per touch), WR/TE (rec EPA per target), summed across weeks before
+    `before_week`. Same shape as team_units(): {(name,team,position_group):
+    (epa_per_usage, total_usage, games)}."""
+    rows = list(csv.DictReader(io.StringIO(csv_text)))
+    totals = {}
+    for r in rows:
+        if r['season_type'] != 'REG' or int(r['season']) != year or int(r['week']) >= before_week: continue
+        pg = r['position_group']
+        if pg not in PLAYER_POSITION_GROUPS: continue
+        try:
+            if pg == 'QB':
+                epa = float(r['passing_epa'] or 0.0)
+                usage = float(r['attempts'] or 0) + float(r['sacks_suffered'] or 0)
+            elif pg == 'RB':
+                epa = float(r['rushing_epa'] or 0.0) + float(r['receiving_epa'] or 0.0)
+                usage = float(r['carries'] or 0) + float(r['targets'] or 0)
+            else:
+                epa = float(r['receiving_epa'] or 0.0)
+                usage = float(r['targets'] or 0)
+        except (ValueError, TypeError): continue
+        if usage <= 0 or not math.isfinite(epa): continue
+        key = (r['player_display_name'] or r['player_name'], r['team'], pg)
+        v = totals.setdefault(key, [0., 0., 0])
+        v[0] += epa; v[1] += usage; v[2] += 1
+    return {key: (v[0]/v[1], v[1], v[2]) for key, v in totals.items()}
+
+def player_grades(prior, current):
+    """Same blend-and-z-score shape as grades(): 8-game-equivalent prior-season
+    prior stabilizes an early-season sample, then each position group is
+    z-scored league-wide (needs >=10 qualifying players in the group)."""
+    values = {}
+    for key in prior.keys() | current.keys():
+        p, c, pg = prior.get(key), current.get(key), key[2]
+        if p and c: epa = (p[0]*8 + c[0]*c[1]) / (8+c[1])
+        elif p: epa = p[0]
+        elif c and c[1] >= PLAYER_MIN_USAGE.get(pg, 5): epa = c[0]
+        else: continue
+        values[key] = {'epa_per_usage': epa, 'usage': c[1] if c else (p[1] if p else 0), 'games': c[2] if c else 0}
+    for pg in PLAYER_POSITION_GROUPS:
+        sample = [v['epa_per_usage'] for k, v in values.items() if k[2] == pg]
+        if len(sample) < 10: continue
+        avg = sum(sample)/len(sample)
+        sd = (sum((x-avg)**2 for x in sample)/len(sample))**.5
+        for k, v in values.items():
+            if k[2] == pg:
+                z = (v['epa_per_usage']-avg)/sd if sd else 0.
+                v['grade'] = letter(z); v['z'] = z
+    return values
+
+def team_position_starters(player_grade_values, team):
+    """Pick the primary player per position group for `team`: the QB and the
+    highest-usage RB/WR/TE that cleared the z-score bar (i.e. has a 'grade'
+    key) -- usage (attempts/carries/targets) stands in for snap share since
+    nflverse's weekly player feed doesn't publish snap counts. A player with
+    zero CURRENT-season games (games==0, i.e. only last season's prior blend
+    matched this team) is ranked behind anyone who has actually played for
+    this team this season -- otherwise a since-departed player's big prior-
+    season workload could outrank this year's real starter."""
+    by_group = {}
+    for (name, team_abbr, pg), v in player_grade_values.items():
+        if team_abbr != team or 'grade' not in v: continue
+        rank_key = (v['games'] > 0, v['usage'])
+        if pg not in by_group or rank_key > by_group[pg][2]:
+            by_group[pg] = (name, v, rank_key)
+    return {pg: (name, v) for pg, (name, v, _) in by_group.items()}
+
 def weather_flags(wind=None, gust=None, precipitation=None, probability=None, codes=()):
     flags=[]; codes=set(c for c in codes if c is not None)
     if wind is not None and wind >= 15: flags.append(f'WIND {wind:.0f} mph')
@@ -1000,6 +1076,27 @@ document.addEventListener('DOMContentLoaded',function(){
             data[year]=team_units(path.read_text(encoding="utf-8"),year,week if year==2026 else 99) if path.exists() else {}
         result=grades(data[2025],data[2026])
         state=f"nflverse EPA · before Week {week} · daily downloads; checks every 15 min while open · " + ("; ".join(notes) if notes else "cached feeds available")
+        return result,state
+
+    def _load_player_grades(self, week):
+        """Same shape as _load_unit_grades() but for individual QB/RB/WR/TE
+        grades (player_units/player_grades above) -- separate cached CSV
+        (nflverse's per-player weekly feed, not the team one)."""
+        cache=APP_DIR / "stats_cache"; cache.mkdir(exist_ok=True)
+        data={}; notes=[]
+        for year in (2025,2026):
+            path=cache / f"player_{year}.csv"
+            fresh=path.exists() and datetime.now().timestamp()-path.stat().st_mtime < 86400
+            if not fresh:
+                try:
+                    with urlopen(Request(PLAYER_STATS_URL.format(year=year),headers={"User-Agent":"NFL personal board"}),timeout=30) as response: raw=response.read().decode("utf-8")
+                    player_units(raw,year)
+                    path.write_text(raw,encoding="utf-8")
+                except Exception:
+                    notes.append(f"{year} feed unavailable" + ("; cached data" if path.exists() else ""))
+            data[year]=player_units(path.read_text(encoding="utf-8"),year,week if year==2026 else 99) if path.exists() else {}
+        result=player_grades(data[2025],data[2026])
+        state=f"nflverse per-player EPA · before Week {week} · daily downloads · " + ("; ".join(notes) if notes else "cached feeds available")
         return result,state
 
     def refresh_unit_grades(self):
