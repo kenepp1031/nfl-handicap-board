@@ -2,12 +2,21 @@
 __pycache__/
 *.pyc
 
-# Backups - not needed in the deployed repo
+# Atomic-write temporaries / backups
+*.tmp
 *.bak-*
 
 # Secrets, if ever added
 .streamlit/secrets.toml
 
-# SQLite WAL/journal files left behind while the desktop app is open
+# The pipeline's SQLite database (~180 MB, over GitHub's file limit) and the
+# nflverse download cache. Both regenerate from `python main.py
+# --ingest-seasons ...`; the published site needs only dashboard/dashboard.html.
+nfl_2_0.db
 *.db-wal
 *.db-shm
+*.db-journal
+cache/
+
+# Local Claude Code preview config
+.claude/

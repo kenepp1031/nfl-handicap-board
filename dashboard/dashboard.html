@@ -1,0 +1,739 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>Edge Board — Week 2, 2026</title><style>
+:root{
+  --bg:#0a0e17; --card-bg:#111726; --card-border:#26314a; --card-border-best:#22c55e;
+  --gold:#f5a623; --gold2:#fbbf24; --teal:#2dd4bf; --away:#f97362;
+  --text:#e8ecf3; --text-dim:#8b93a7; --badge-bg:#1a2136; --green:#22c55e;
+  --blue:#3b82f6; --red:#ef4444;
+}
+*{box-sizing:border-box;}
+body{font-family:-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);margin:0;}
+.ticker{background:#0d1220;border-bottom:1px solid var(--card-border);display:flex;align-items:center;
+  gap:0;overflow:hidden;white-space:nowrap;height:44px;}
+.ticker-track{display:flex;align-items:center;gap:28px;padding-left:20px;animation:scroll 140s linear infinite;}
+.ticker-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);}
+.ticker-item b{color:var(--text);}
+.ticker-conf{background:var(--gold);color:#1a1206;font-weight:700;font-size:11px;border-radius:4px;padding:1px 6px;}
+@keyframes scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+.wrap{padding:28px 32px 48px;max-width:1400px;margin:0 auto;}
+h1{font-size:34px;margin:0 0 6px;font-weight:800;}
+h1 .accent{background:linear-gradient(90deg,var(--gold),var(--gold2));-webkit-background-clip:text;
+  background-clip:text;color:transparent;}
+.sub{color:var(--text-dim);font-size:14px;margin-bottom:6px;}
+.headerrow{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:18px;}
+.weektag{background:var(--badge-bg);border:1px solid var(--card-border);border-radius:6px;padding:6px 12px;
+  font-size:12px;color:var(--text-dim);letter-spacing:.04em;white-space:nowrap;}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin:18px 0 26px;font-size:12px;color:var(--text-dim);}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.section-title{font-size:13px;font-weight:800;letter-spacing:.05em;color:var(--text);margin:30px 0 4px;
+  display:flex;align-items:baseline;gap:10px;}
+.section-title .n{font-size:12px;font-weight:500;color:var(--text-dim);}
+.bb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px;}
+.bb-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:16px;}
+.bb-matchup{font-size:15px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
+.bb-logo{width:20px;height:20px;object-fit:contain;}
+.bb-pick{font-size:13px;margin-bottom:8px;}
+.bb-pick .pick-val{color:var(--gold2);font-weight:800;}
+.bb-pick .pick-type{color:var(--text-dim);font-size:11px;letter-spacing:.04em;margin-left:4px;}
+.bb-reason{font-size:12.5px;color:var(--text-dim);line-height:1.4;margin-bottom:10px;}
+.confbar{height:5px;border-radius:3px;background:#232a3d;overflow:hidden;margin-bottom:6px;}
+.confbar-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));}
+.confrow{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);}
+.confrow b{color:var(--text);}
+.empty-note{color:var(--text-dim);font-size:13px;margin-top:10px;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:14px;}
+.card{background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:10px;padding:16px;position:relative;}
+.card.best{border-color:var(--card-border-best);}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.pill{font-size:10px;font-weight:800;letter-spacing:.05em;border-radius:4px;padding:3px 7px;}
+.pill-best{background:var(--gold);color:#1a1206;}
+.pill-weather{border:1px solid var(--card-border);color:var(--text-dim);background:#0d1220;}
+.pill-wind{border-color:var(--green);color:var(--green);}
+.pill-rain{border-color:var(--blue);color:var(--blue);}
+.pill-snow{border-color:#e5e7eb;color:#e5e7eb;}
+.teams{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);letter-spacing:.04em;margin-bottom:2px;}
+.team-names{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.team-home{color:var(--teal);font-weight:800;font-size:19px;display:flex;align-items:center;gap:6px;}
+.team-away{color:var(--away);font-weight:800;font-size:19px;display:flex;align-items:center;gap:6px;flex-direction:row-reverse;}
+.logo{width:26px;height:26px;object-fit:contain;}
+.dkline{text-align:center;font-size:12px;color:var(--text-dim);background:#0d1220;border:1px solid var(--card-border);
+  border-radius:6px;padding:5px 8px;margin-bottom:8px;}
+.dkline b{color:var(--gold2);}
+.linemove{font-size:11.5px;color:var(--text-dim);margin:4px 0 8px;}
+.venue{font-size:12px;color:var(--text-dim);margin-bottom:2px;}
+.metaline{font-size:12px;color:var(--text-dim);margin-bottom:2px;}
+.section-label{font-size:10.5px;color:var(--text-dim);letter-spacing:.06em;margin:12px 0 4px;font-weight:700;}
+.projscore{font-size:20px;font-weight:800;margin-bottom:8px;}
+.projscore .home{color:var(--teal);} .projscore .away{color:var(--away);} .projscore .dash{color:var(--text-dim);font-weight:400;}
+table.edge{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:6px;}
+table.edge th{text-align:left;font-weight:600;color:var(--text-dim);font-size:10.5px;padding:3px 4px;letter-spacing:.03em;}
+table.edge td{padding:4px 4px;border-top:1px solid #1c2338;}
+table.edge td.edgeval{color:var(--gold2);font-weight:700;}
+.splitrow{margin-bottom:8px;}
+.splitlabel{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:3px;}
+.sharp{color:var(--gold2);font-weight:700;}
+.bar{height:7px;border-radius:4px;overflow:hidden;display:flex;margin-bottom:3px;background:#1a2136;}
+.bar-a{background:var(--teal);} .bar-b{background:var(--away);}
+.bar-c{background:var(--gold2);} .bar-d{background:var(--blue);}
+.barnum{font-size:11px;color:var(--text-dim);text-align:right;}
+.confidence-row{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;padding-top:8px;
+  border-top:1px solid #1c2338;}
+.confidence-row b{font-size:14px;}
+.leannote{font-size:10px;color:var(--text-dim);font-weight:400;}
+details{margin-top:8px;}
+summary{cursor:pointer;font-size:12px;color:var(--gold2);font-weight:600;list-style:none;}
+summary::-webkit-details-marker{display:none;}
+summary:before{content:"▸ ";}
+details[open] summary:before{content:"▾ ";}
+.hwg{margin-top:8px;font-size:12px;color:var(--text-dim);line-height:1.6;}
+.hwg b{color:var(--text);}
+.report-list{margin:0 0 8px;padding-left:18px;}
+.report-list li{margin-bottom:5px;}
+.premodel{font-size:11.5px;color:var(--text-dim);font-style:italic;margin-bottom:8px;padding-top:6px;border-top:1px solid #1c2338;}
+.grades{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.badge{background:var(--badge-bg);border:1px solid var(--card-border);border-radius:4px;padding:2px 6px;font-size:10.5px;}
+.footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--card-border);color:var(--text-dim);
+  font-size:12.5px;line-height:1.6;}
+.power-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(440px,1fr));gap:16px;margin-top:14px;}
+table.power{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--card-bg);
+  border:1px solid var(--card-border);border-radius:10px;overflow:hidden;}
+table.power th{text-align:left;font-weight:600;color:var(--text-dim);font-size:10.5px;padding:8px 10px;letter-spacing:.04em;
+  background:#0d1220;}
+table.power td{padding:6px 10px;border-top:1px solid #1c2338;white-space:nowrap;}
+table.power td.rank{color:var(--text-dim);width:28px;}
+table.power td.team{font-weight:700;display:flex;align-items:center;gap:8px;}
+table.power td.team img{width:22px;height:22px;object-fit:contain;}
+table.power td.pwr{color:var(--gold2);font-weight:800;}
+table.power td.num{color:var(--text-dim);}
+.up{color:var(--green);} .down{color:var(--red);}
+</style></head>
+<body>
+<div class="ticker">
+  <div class="ticker-track"><div class="ticker-item">DET @ BUF &nbsp;<b>BUF -6.0</b> (ATS) <span class="ticker-conf">3</span></div><div class="ticker-item">DET @ BUF &nbsp;<b>UNDER 46.5</b> (O/U) <span class="ticker-conf">12</span></div><div class="ticker-item">CAR @ ATL &nbsp;<b>CAR +0.0</b> (ATS) <span class="ticker-conf">8</span></div><div class="ticker-item">CAR @ ATL &nbsp;<b>UNDER 43.0</b> (O/U) <span class="ticker-conf">3</span></div><div class="ticker-item">NO @ BAL &nbsp;<b>NO +6.5</b> (ATS) <span class="ticker-conf">7</span></div><div class="ticker-item">NO @ BAL &nbsp;<b>UNDER 45.0</b> (O/U) <span class="ticker-conf">8</span></div><div class="ticker-item">MIN @ CHI &nbsp;<b>CHI -6.0</b> (ATS) <span class="ticker-conf">6</span></div><div class="ticker-item">MIN @ CHI &nbsp;<b>UNDER 43.5</b> (O/U) <span class="ticker-conf">10</span></div><div class="ticker-item">CIN @ HOU &nbsp;<b>HOU -2.5</b> (ATS) <span class="ticker-conf">2</span></div><div class="ticker-item">CIN @ HOU &nbsp;<b>UNDER 45.0</b> (O/U) <span class="ticker-conf">8</span></div><div class="ticker-item">PIT @ NE &nbsp;<b>NE -6.0</b> (ATS) <span class="ticker-conf">4</span></div><div class="ticker-item">PIT @ NE &nbsp;<b>OVER 42.5</b> (O/U) <span class="ticker-conf">5</span></div><div class="ticker-item">GB @ NYJ &nbsp;<b>GB -0.5</b> (ATS) <span class="ticker-conf">10</span></div><div class="ticker-item">GB @ NYJ &nbsp;<b>UNDER 43.5</b> (O/U) <span class="ticker-conf">5</span></div><div class="ticker-item">CLE @ TB &nbsp;<b>CLE +7.0</b> (ATS) <span class="ticker-conf">6</span></div><div class="ticker-item">CLE @ TB &nbsp;<b>OVER 42.5</b> (O/U) <span class="ticker-conf">5</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>PHI +0.0</b> (ATS) <span class="ticker-conf">10</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>OVER 42.5</b> (O/U) <span class="ticker-conf">12</span></div><div class="ticker-item">JAX @ DEN &nbsp;<b>JAX -4.0</b> (ATS) <span class="ticker-conf">8</span></div><div class="ticker-item">JAX @ DEN &nbsp;<b>UNDER 44.5</b> (O/U) <span class="ticker-conf">6</span></div><div class="ticker-item">LV @ LAC &nbsp;<b>LV +3.0</b> (ATS) <span class="ticker-conf">10</span></div><div class="ticker-item">LV @ LAC &nbsp;<b>UNDER 43.0</b> (O/U) <span class="ticker-conf">3</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>SEA -0.5</b> (ATS) <span class="ticker-conf">8</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>OVER 42.5</b> (O/U) <span class="ticker-conf">5</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>WAS +4.5</b> (ATS) <span class="ticker-conf">2</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>UNDER 45.0</b> (O/U) <span class="ticker-conf">12</span></div><div class="ticker-item">MIA @ SF &nbsp;<b>MIA +8.0</b> (ATS) <span class="ticker-conf">10</span></div><div class="ticker-item">MIA @ SF &nbsp;<b>UNDER 44.0</b> (O/U) <span class="ticker-conf">4</span></div><div class="ticker-item">IND @ KC &nbsp;<b>IND +6.0</b> (ATS) <span class="ticker-conf">2</span></div><div class="ticker-item">IND @ KC &nbsp;<b>UNDER 45.0</b> (O/U) <span class="ticker-conf">8</span></div><div class="ticker-item">NYG @ LA &nbsp;<b>NYG +2.0</b> (ATS) <span class="ticker-conf">8</span></div><div class="ticker-item">NYG @ LA &nbsp;<b>UNDER 45.5</b> (O/U) <span class="ticker-conf">12</span></div><div class="ticker-item">DET @ BUF &nbsp;<b>BUF -6.0</b> (ATS) <span class="ticker-conf">3</span></div><div class="ticker-item">DET @ BUF &nbsp;<b>UNDER 46.5</b> (O/U) <span class="ticker-conf">12</span></div><div class="ticker-item">CAR @ ATL &nbsp;<b>CAR +0.0</b> (ATS) <span class="ticker-conf">8</span></div><div class="ticker-item">CAR @ ATL &nbsp;<b>UNDER 43.0</b> (O/U) <span class="ticker-conf">3</span></div><div class="ticker-item">NO @ BAL &nbsp;<b>NO +6.5</b> (ATS) <span class="ticker-conf">7</span></div><div class="ticker-item">NO @ BAL &nbsp;<b>UNDER 45.0</b> (O/U) <span class="ticker-conf">8</span></div><div class="ticker-item">MIN @ CHI &nbsp;<b>CHI -6.0</b> (ATS) <span class="ticker-conf">6</span></div><div class="ticker-item">MIN @ CHI &nbsp;<b>UNDER 43.5</b> (O/U) <span class="ticker-conf">10</span></div><div class="ticker-item">CIN @ HOU &nbsp;<b>HOU -2.5</b> (ATS) <span class="ticker-conf">2</span></div><div class="ticker-item">CIN @ HOU &nbsp;<b>UNDER 45.0</b> (O/U) <span class="ticker-conf">8</span></div><div class="ticker-item">PIT @ NE &nbsp;<b>NE -6.0</b> (ATS) <span class="ticker-conf">4</span></div><div class="ticker-item">PIT @ NE &nbsp;<b>OVER 42.5</b> (O/U) <span class="ticker-conf">5</span></div><div class="ticker-item">GB @ NYJ &nbsp;<b>GB -0.5</b> (ATS) <span class="ticker-conf">10</span></div><div class="ticker-item">GB @ NYJ &nbsp;<b>UNDER 43.5</b> (O/U) <span class="ticker-conf">5</span></div><div class="ticker-item">CLE @ TB &nbsp;<b>CLE +7.0</b> (ATS) <span class="ticker-conf">6</span></div><div class="ticker-item">CLE @ TB &nbsp;<b>OVER 42.5</b> (O/U) <span class="ticker-conf">5</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>PHI +0.0</b> (ATS) <span class="ticker-conf">10</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>OVER 42.5</b> (O/U) <span class="ticker-conf">12</span></div><div class="ticker-item">JAX @ DEN &nbsp;<b>JAX -4.0</b> (ATS) <span class="ticker-conf">8</span></div><div class="ticker-item">JAX @ DEN &nbsp;<b>UNDER 44.5</b> (O/U) <span class="ticker-conf">6</span></div><div class="ticker-item">LV @ LAC &nbsp;<b>LV +3.0</b> (ATS) <span class="ticker-conf">10</span></div><div class="ticker-item">LV @ LAC &nbsp;<b>UNDER 43.0</b> (O/U) <span class="ticker-conf">3</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>SEA -0.5</b> (ATS) <span class="ticker-conf">8</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>OVER 42.5</b> (O/U) <span class="ticker-conf">5</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>WAS +4.5</b> (ATS) <span class="ticker-conf">2</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>UNDER 45.0</b> (O/U) <span class="ticker-conf">12</span></div><div class="ticker-item">MIA @ SF &nbsp;<b>MIA +8.0</b> (ATS) <span class="ticker-conf">10</span></div><div class="ticker-item">MIA @ SF &nbsp;<b>UNDER 44.0</b> (O/U) <span class="ticker-conf">4</span></div><div class="ticker-item">IND @ KC &nbsp;<b>IND +6.0</b> (ATS) <span class="ticker-conf">2</span></div><div class="ticker-item">IND @ KC &nbsp;<b>UNDER 45.0</b> (O/U) <span class="ticker-conf">8</span></div><div class="ticker-item">NYG @ LA &nbsp;<b>NYG +2.0</b> (ATS) <span class="ticker-conf">8</span></div><div class="ticker-item">NYG @ LA &nbsp;<b>UNDER 45.5</b> (O/U) <span class="ticker-conf">12</span></div></div>
+</div>
+<div class="wrap">
+  <div class="headerrow">
+    <div>
+      <h1>Edge <span class="accent">Board</span></h1>
+      <div class="sub">Power-score projections with the full adjustment stack shown for every game — home team always on the left.</div>
+    </div>
+    <div class="weektag">WEEK 2 · 2026 · 16 GAMES</div>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--green)"></span>Wind 15mph+</span>
+    <span><span class="dot" style="background:var(--blue)"></span>Rain</span>
+    <span><span class="dot" style="background:#e5e7eb"></span>Snow</span>
+  </div>
+
+  <div class="section-title">BEST BETS OF THE WEEK <span class="n">0 qualify at 65+ lean score</span></div>
+  <div class="empty-note">No plays clear the 65+ lean-score bar this week.</div>
+
+  <div class="section-title">POWER RANKINGS <span class="n">through week 1 · weeks 1-6 blend in each team's 2025 exit score and every returning player's 2025 grade</span></div><div class="power-wrap"><table class="power"><tr><th>#</th><th>TEAM</th><th>POWER</th><th>OFF</th><th>DEF</th><th>2025 EXIT</th><th>MOVE</th><th>GAMES</th></tr><tr><td class="rank">1</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/jax.png" alt="">JAX</td><td class="pwr">57.3</td><td>B+</td><td>B</td><td class="num">55.7 (#2)</td><td><span class="up">▲1</span></td><td class="num">1</td></tr><tr><td class="rank">2</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/bal.png" alt="">BAL</td><td class="pwr">54.2</td><td>B</td><td>B</td><td class="num">53.1 (#5)</td><td><span class="up">▲3</span></td><td class="num">1</td></tr><tr><td class="rank">3</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/chi.png" alt="">CHI</td><td class="pwr">54.2</td><td>B</td><td>B-</td><td class="num">51.3 (#12)</td><td><span class="up">▲9</span></td><td class="num">1</td></tr><tr><td class="rank">4</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/buf.png" alt="">BUF</td><td class="pwr">54.0</td><td>B</td><td>B-</td><td class="num">53.4 (#4)</td><td><span class="num">—</span></td><td class="num">1</td></tr><tr><td class="rank">5</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/ne.png" alt="">NE</td><td class="pwr">53.5</td><td>B</td><td>B</td><td class="num">56.9 (#1)</td><td><span class="down">▼4</span></td><td class="num">1</td></tr><tr><td class="rank">6</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/sf.png" alt="">SF</td><td class="pwr">53.1</td><td>B</td><td>B-</td><td class="num">52.2 (#7)</td><td><span class="up">▲1</span></td><td class="num">1</td></tr><tr><td class="rank">7</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/sea.png" alt="">SEA</td><td class="pwr">53.0</td><td>B</td><td>B</td><td class="num">51.2 (#14)</td><td><span class="up">▲7</span></td><td class="num">1</td></tr><tr><td class="rank">8</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png" alt="">NYG</td><td class="pwr">52.3</td><td>B</td><td>B-</td><td class="num">51.0 (#16)</td><td><span class="up">▲8</span></td><td class="num">1</td></tr><tr><td class="rank">9</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/dal.png" alt="">DAL</td><td class="pwr">51.7</td><td>B</td><td>B-</td><td class="num">50.2 (#19)</td><td><span class="up">▲10</span></td><td class="num">1</td></tr><tr><td class="rank">10</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/cin.png" alt="">CIN</td><td class="pwr">51.5</td><td>B-</td><td>B-</td><td class="num">52.3 (#6)</td><td><span class="down">▼4</span></td><td class="num">1</td></tr><tr><td class="rank">11</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/hou.png" alt="">HOU</td><td class="pwr">51.3</td><td>B-</td><td>B-</td><td class="num">50.6 (#17)</td><td><span class="up">▲6</span></td><td class="num">1</td></tr><tr><td class="rank">12</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/det.png" alt="">DET</td><td class="pwr">51.3</td><td>B-</td><td>B-</td><td class="num">50.2 (#18)</td><td><span class="up">▲6</span></td><td class="num">1</td></tr><tr><td class="rank">13</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/lar.png" alt="">LA</td><td class="pwr">50.8</td><td>B-</td><td>B-</td><td class="num">53.5 (#3)</td><td><span class="down">▼10</span></td><td class="num">1</td></tr><tr><td class="rank">14</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/phi.png" alt="">PHI</td><td class="pwr">50.6</td><td>B-</td><td>B-</td><td class="num">51.1 (#15)</td><td><span class="up">▲1</span></td><td class="num">1</td></tr><tr><td class="rank">15</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/no.png" alt="">NO</td><td class="pwr">50.2</td><td>B-</td><td>B-</td><td class="num">51.9 (#8)</td><td><span class="down">▼7</span></td><td class="num">1</td></tr><tr><td class="rank">16</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/gb.png" alt="">GB</td><td class="pwr">50.0</td><td>B-</td><td>B-</td><td class="num">51.2 (#13)</td><td><span class="down">▼3</span></td><td class="num">1</td></tr></table><table class="power"><tr><th>#</th><th>TEAM</th><th>POWER</th><th>OFF</th><th>DEF</th><th>2025 EXIT</th><th>MOVE</th><th>GAMES</th></tr><tr><td class="rank">17</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/ari.png" alt="">ARI</td><td class="pwr">50.0</td><td>B-</td><td>B-</td><td class="num">47.9 (#26)</td><td><span class="up">▲9</span></td><td class="num">1</td></tr><tr><td class="rank">18</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/kc.png" alt="">KC</td><td class="pwr">49.7</td><td>B-</td><td>B-</td><td class="num">46.2 (#29)</td><td><span class="up">▲11</span></td><td class="num">1</td></tr><tr><td class="rank">19</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png" alt="">WAS</td><td class="pwr">49.7</td><td>B-</td><td>B-</td><td class="num">48.7 (#21)</td><td><span class="up">▲2</span></td><td class="num">1</td></tr><tr><td class="rank">20</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/pit.png" alt="">PIT</td><td class="pwr">49.6</td><td>B-</td><td>B-</td><td class="num">51.4 (#11)</td><td><span class="down">▼9</span></td><td class="num">1</td></tr><tr><td class="rank">21</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/car.png" alt="">CAR</td><td class="pwr">49.5</td><td>B-</td><td>C+</td><td class="num">48.3 (#22)</td><td><span class="up">▲1</span></td><td class="num">1</td></tr><tr><td class="rank">22</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/mia.png" alt="">MIA</td><td class="pwr">49.4</td><td>B-</td><td>B-</td><td class="num">48.9 (#20)</td><td><span class="down">▼2</span></td><td class="num">1</td></tr><tr><td class="rank">23</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/den.png" alt="">DEN</td><td class="pwr">48.9</td><td>C+</td><td>B-</td><td class="num">51.6 (#10)</td><td><span class="down">▼13</span></td><td class="num">1</td></tr><tr><td class="rank">24</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/min.png" alt="">MIN</td><td class="pwr">48.9</td><td>B-</td><td>B-</td><td class="num">47.9 (#25)</td><td><span class="up">▲1</span></td><td class="num">1</td></tr><tr><td class="rank">25</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/tb.png" alt="">TB</td><td class="pwr">48.7</td><td>B-</td><td>B-</td><td class="num">48.2 (#24)</td><td><span class="down">▼1</span></td><td class="num">1</td></tr><tr><td class="rank">26</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/atl.png" alt="">ATL</td><td class="pwr">46.8</td><td>C+</td><td>B-</td><td class="num">51.8 (#9)</td><td><span class="down">▼17</span></td><td class="num">1</td></tr><tr><td class="rank">27</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/lac.png" alt="">LAC</td><td class="pwr">46.8</td><td>C+</td><td>B-</td><td class="num">48.2 (#23)</td><td><span class="down">▼4</span></td><td class="num">1</td></tr><tr><td class="rank">28</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/ind.png" alt="">IND</td><td class="pwr">46.6</td><td>C+</td><td>C+</td><td class="num">47.0 (#27)</td><td><span class="down">▼1</span></td><td class="num">1</td></tr><tr><td class="rank">29</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/lv.png" alt="">LV</td><td class="pwr">46.0</td><td>C+</td><td>B-</td><td class="num">42.9 (#31)</td><td><span class="up">▲2</span></td><td class="num">1</td></tr><tr><td class="rank">30</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/nyj.png" alt="">NYJ</td><td class="pwr">45.5</td><td>C+</td><td>C+</td><td class="num">41.8 (#32)</td><td><span class="up">▲2</span></td><td class="num">1</td></tr><tr><td class="rank">31</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/ten.png" alt="">TEN</td><td class="pwr">45.4</td><td>C+</td><td>C+</td><td class="num">46.3 (#28)</td><td><span class="down">▼3</span></td><td class="num">1</td></tr><tr><td class="rank">32</td><td class="team"><img src="https://a.espncdn.com/i/teamlogos/nfl/500/cle.png" alt="">CLE</td><td class="pwr">44.9</td><td>C+</td><td>C+</td><td class="num">44.3 (#30)</td><td><span class="down">▼2</span></td><td class="num">1</td></tr></table></div>
+
+  <div class="section-title">ALL GAMES <span class="n">16 games</span></div>
+  <div class="grid">
+<div class="card">
+  <div class="card-top"><span></span><span class="pill pill-weather pill-rain">RAIN</span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/buf.png" alt="">BUF<span title="Loud venue — modest home-field bump">🔈</span></span>
+    <span class="team-away">DET<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/det.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>BUF -5.5</b> &nbsp;·&nbsp; O/U <b>54.5</b></div>
+  <div class="venue">Highmark Stadium · Orchard Park, NY</div>
+  <div class="metaline">RAIN / SHOWERS</div>
+  <div class="metaline">Referee: Ron Torbert</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">BUF 26</span><span class="dash"> — </span><span class="away">DET 20</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-6.0</td><td class="edgeval">0.5 pts → BUF</td></tr><tr><td>Total</td><td>46.5</td><td class="edgeval">8.0 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Spread: Opened -3.5 → Now -5.5 · Total: Opened 53.5 → Now 54.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:70.0%"></div><div class="bar-b" style="width:30.0%"></div></div>
+  <div class="barnum">BUF 70% / DET 30%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:73.0%"></div><div class="bar-b" style="width:27.0%"></div></div>
+  <div class="barnum">BUF 73% / DET 27%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:69.0%"></div><div class="bar-d" style="width:31.0%"></div></div>
+  <div class="barnum">OVER 69% / UNDER 31%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>3</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for BUF (+2.3 pts).</li><li>Referee Ron Torbert: 42% career home ATS (139g) — mild lean toward DET (0.12 pts, soft signal).</li><li>Injuries move the number 1.3 pts toward BUF. <b>BUF −0.2</b>: SAF Cole Bishop (Questionable) −0.2 · <b>DET −1.5</b>: OT Blake Miller (Out) −1.0, CB D.J. Reed (Questionable) −0.4</li></ul>
+  <div class="premodel">Our own read before blending toward the market: BUF -6.5 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">BUF QB B+</span><span class="badge">BUF RB B</span><span class="badge">BUF WR B</span><span class="badge">BUF TE A-</span><span class="badge">BUF OL B+</span><span class="badge">BUF DEF B-</span><span class="badge">DET QB B</span><span class="badge">DET RB B</span><span class="badge">DET WR B</span><span class="badge">DET TE B</span><span class="badge">DET OL B</span><span class="badge">DET DEF B-</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/atl.png" alt="">ATL</span>
+    <span class="team-away">CAR<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/car.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>ATL -2.5</b> &nbsp;·&nbsp; O/U <b>43.5</b></div>
+  <div class="venue">Mercedes-Benz Stadium · Atlanta, GA</div>
+  <div class="metaline">Forecast pending</div>
+  <div class="metaline">Referee: Alex Moore</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">ATL 22</span><span class="dash"> — </span><span class="away">CAR 22</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+0.0</td><td class="edgeval">2.5 pts → CAR</td></tr><tr><td>Total</td><td>43.0</td><td class="edgeval">0.5 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Spread: Opened -1.5 → Now -2.5 · Total: Opened 44.5 → Now 43.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:84.0%"></div><div class="bar-b" style="width:16.0%"></div></div>
+  <div class="barnum">ATL 84% / CAR 16%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:83.0%"></div><div class="bar-b" style="width:17.0%"></div></div>
+  <div class="barnum">ATL 83% / CAR 17%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:72.0%"></div><div class="bar-d" style="width:28.0%"></div></div>
+  <div class="barnum">OVER 72% / UNDER 28%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>8</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for ATL (+1.8 pts).</li><li>Divisional rivalry game — total compressed; these tend to play closer than the power-rating gap alone suggests.</li><li>Referee Alex Moore: 59% career home ATS (17g) — mild lean toward ATL (0.14 pts, soft signal).</li><li>Injuries move the number 0.2 pts toward CAR. <b>ATL −0.6</b>: CB A.J. Terrell (Questionable) −0.4, G Chris Lindstrom (Questionable) −0.2, DE Da'Shawn Hand (Injured Reserve) −0.1 · <b>CAR −0.4</b>: WR Jalen Coker (Questionable) −0.3, DT Bobby Brown III (Questionable) −0.1</li></ul>
+  <div class="premodel">Our own read before blending toward the market: ATL +1.0 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">ATL QB D</span><span class="badge">ATL RB B-</span><span class="badge">ATL WR C</span><span class="badge">ATL TE C</span><span class="badge">ATL OL C</span><span class="badge">ATL DEF B-</span><span class="badge">CAR QB B</span><span class="badge">CAR RB B+</span><span class="badge">CAR WR B</span><span class="badge">CAR TE B</span><span class="badge">CAR OL B+</span><span class="badge">CAR DEF C+</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/bal.png" alt="">BAL<span title="Loud venue — modest home-field bump">🔈</span></span>
+    <span class="team-away">NO<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/no.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>BAL -8.5</b> &nbsp;·&nbsp; O/U <b>46.5</b></div>
+  <div class="venue">M&T Bank Stadium · Baltimore, MD</div>
+  <div class="metaline">GUSTS 19 mph | PRECIP CHANCE 52%</div>
+  <div class="metaline">Referee: Clete Blakeman</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">BAL 26</span><span class="dash"> — </span><span class="away">NO 19</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-6.5</td><td class="edgeval">2.0 pts → NO</td></tr><tr><td>Total</td><td>45.0</td><td class="edgeval">1.5 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Total: Opened 48.5 → Now 46.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: NO</span></div>
+  <div class="bar"><div class="bar-a" style="width:56.0%"></div><div class="bar-b" style="width:44.0%"></div></div>
+  <div class="barnum">BAL 56% / NO 44%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:36.0%"></div><div class="bar-b" style="width:64.0%"></div></div>
+  <div class="barnum">BAL 36% / NO 64%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:82.0%"></div><div class="bar-d" style="width:18.0%"></div></div>
+  <div class="barnum">OVER 82% / UNDER 18%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>7</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for BAL (+2.3 pts).</li><li>Referee Clete Blakeman: 51% career home ATS (238g) — no meaningful lean.</li><li>Injuries move the number 1.0 pts toward NO. <b>BAL −1.3</b>: WR Ja'Kobi Lane (Injured Reserve) −0.4, OT Ronnie Stanley (Questionable) −0.4, G John Simpson (Questionable) −0.2, LB Trey Hendrickson (Questionable) −0.1, WR Zay Flowers (Questionable) −0.1 · <b>NO −0.2</b>: TE Juwan Johnson (Questionable) −0.2</li></ul>
+  <div class="premodel">Our own read before blending toward the market: BAL -5.5 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">BAL QB B+</span><span class="badge">BAL RB B</span><span class="badge">BAL WR B</span><span class="badge">BAL TE B+</span><span class="badge">BAL OL B+</span><span class="badge">BAL DEF B-</span><span class="badge">NO QB C+</span><span class="badge">NO RB B-</span><span class="badge">NO WR B</span><span class="badge">NO TE C+</span><span class="badge">NO OL C+</span><span class="badge">NO DEF B-</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span><span class="pill pill-weather pill-rain">RAIN</span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/chi.png" alt="">CHI</span>
+    <span class="team-away">MIN<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/min.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>CHI -4.5</b> &nbsp;·&nbsp; O/U <b>47.5</b></div>
+  <div class="venue">Soldier Field · Chicago, IL</div>
+  <div class="metaline">GUSTS 25 mph | RAIN / SHOWERS | PRECIP CHANCE 60%</div>
+  <div class="metaline">Referee: Land Clark</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">CHI 25</span><span class="dash"> — </span><span class="away">MIN 19</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-6.0</td><td class="edgeval">1.5 pts → CHI</td></tr><tr><td>Total</td><td>43.5</td><td class="edgeval">4.0 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Spread: Opened -5.5 → Now -4.5 · Total: Opened 48.5 → Now 47.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:68.0%"></div><div class="bar-b" style="width:32.0%"></div></div>
+  <div class="barnum">CHI 68% / MIN 32%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:69.0%"></div><div class="bar-b" style="width:31.0%"></div></div>
+  <div class="barnum">CHI 69% / MIN 31%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:81.0%"></div><div class="bar-d" style="width:19.0%"></div></div>
+  <div class="barnum">OVER 81% / UNDER 19%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>6</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for CHI (+1.8 pts).</li><li>Divisional rivalry game — total compressed; these tend to play closer than the power-rating gap alone suggests.</li><li>Referee Land Clark: 45% career home ATS (92g) — mild lean toward MIN (0.09 pts, soft signal).</li><li>Injuries move the number 0.2 pts toward CHI. <b>CHI −1.4</b>: OT Darnell Wright (Questionable) −0.4, CB Malik Muhammad (Questionable) −0.3, DE Dayo Odeyingbo (Questionable) −0.2, RB D'Andre Swift (Questionable) −0.2, RB Kyle Monangai (Questionable) −0.2 · <b>MIN −1.6</b>: RB Jordan Mason (Injured Reserve) −0.5, OT Brian O'Neill (Questionable) −0.4, QB Kyler Murray (Questionable) −0.3, OLB Andrew Van Ginkel (Questionable) −0.2, LB Blake Cashman (Questionable) −0.2</li></ul>
+  <div class="premodel">Our own read before blending toward the market: CHI -7.0 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">CHI QB B+</span><span class="badge">CHI RB A-</span><span class="badge">CHI WR B+</span><span class="badge">CHI TE A-</span><span class="badge">CHI OL A</span><span class="badge">CHI DEF B-</span><span class="badge">MIN QB B-</span><span class="badge">MIN RB C+</span><span class="badge">MIN WR B-</span><span class="badge">MIN TE B-</span><span class="badge">MIN OL C+</span><span class="badge">MIN DEF B-</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/hou.png" alt="">HOU</span>
+    <span class="team-away">CIN<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/cin.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>HOU -2.5</b> &nbsp;·&nbsp; O/U <b>46.5</b></div>
+  <div class="venue">NRG Stadium · Houston, TX</div>
+  <div class="metaline">Forecast pending</div>
+  <div class="metaline">Referee: Adrian Hill</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">HOU 24</span><span class="dash"> — </span><span class="away">CIN 21</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-2.5</td><td class="edgeval">0.0 pts</td></tr><tr><td>Total</td><td>45.0</td><td class="edgeval">1.5 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Spread: Opened -3.0 → Now -2.5 · Total: Opened 47.5 → Now 46.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:59.0%"></div><div class="bar-b" style="width:41.0%"></div></div>
+  <div class="barnum">HOU 59% / CIN 41%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:59.0%"></div><div class="bar-b" style="width:41.0%"></div></div>
+  <div class="barnum">HOU 59% / CIN 41%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:71.0%"></div><div class="bar-d" style="width:29.0%"></div></div>
+  <div class="barnum">OVER 71% / UNDER 29%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>2</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for HOU (+1.8 pts).</li><li>Referee Adrian Hill: 49% career home ATS (109g) — no meaningful lean.</li><li>Injuries move the number 1.1 pts toward HOU. <b>HOU −0.9</b>: LB Henry To'oTo'o (Injured Reserve) −0.4, WR Nico Collins (Questionable) −0.3, DE Jadeveon Clowney (Questionable) −0.1 · <b>CIN −2.0</b>: QB Joe Burrow (Questionable) −2.0</li></ul>
+  <div class="premodel">Our own read before blending toward the market: HOU -2.5 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">HOU QB B</span><span class="badge">HOU RB B</span><span class="badge">HOU WR B</span><span class="badge">HOU TE C+</span><span class="badge">HOU OL B-</span><span class="badge">HOU DEF B-</span><span class="badge">CIN QB B-</span><span class="badge">CIN RB B-</span><span class="badge">CIN WR C</span><span class="badge">CIN TE B-</span><span class="badge">CIN OL B-</span><span class="badge">CIN DEF B-</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span><span class="pill pill-weather pill-rain">RAIN</span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/ne.png" alt="">NE</span>
+    <span class="team-away">PIT<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/pit.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>NE -5.5</b> &nbsp;·&nbsp; O/U <b>41.5</b></div>
+  <div class="venue">Gillette Stadium · Foxborough, MA</div>
+  <div class="metaline">GUSTS 20 mph | RAIN / SHOWERS | PRECIP CHANCE 70%</div>
+  <div class="metaline">Referee: Carl Cheffers</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">NE 24</span><span class="dash"> — </span><span class="away">PIT 18</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-6.0</td><td class="edgeval">0.5 pts → NE</td></tr><tr><td>Total</td><td>42.5</td><td class="edgeval">1.0 pts → OVER</td></tr></table>
+  <div class="linemove">📈 Line movement: Total: Opened 42.5 → Now 41.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: NE</span></div>
+  <div class="bar"><div class="bar-a" style="width:66.0%"></div><div class="bar-b" style="width:34.0%"></div></div>
+  <div class="barnum">NE 66% / PIT 34%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:85.0%"></div><div class="bar-b" style="width:15.0%"></div></div>
+  <div class="barnum">NE 85% / PIT 15%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:32.0%"></div><div class="bar-d" style="width:68.0%"></div></div>
+  <div class="barnum">OVER 32% / UNDER 68%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>4</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for NE (+1.8 pts).</li><li>Rest/travel edge favors NE (1.2 pts) — short week or extra rest differential.</li><li>Referee Carl Cheffers: 50% career home ATS (268g) — no meaningful lean.</li><li>Injuries move the number 0.6 pts toward PIT. <b>NE −1.4</b>: WR A.J. Brown (Injured Reserve) −0.4, CB Carlton Davis III (Questionable) −0.4, DE Dre'Mont Jones (Questionable) −0.3, LB Robert Spillane (Questionable) −0.2 · <b>PIT −0.8</b>: OT Troy Fautanu (Questionable) −0.4, WR Michael Pittman (Questionable) −0.3</li></ul>
+  <div class="premodel">Our own read before blending toward the market: NE -6.5 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">NE QB B</span><span class="badge">NE RB C</span><span class="badge">NE WR B-</span><span class="badge">NE TE C+</span><span class="badge">NE OL B-</span><span class="badge">NE DEF B-</span><span class="badge">PIT QB C+</span><span class="badge">PIT RB C-</span><span class="badge">PIT WR B-</span><span class="badge">PIT TE B-</span><span class="badge">PIT OL C+</span><span class="badge">PIT DEF B-</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span><span class="pill pill-weather pill-rain">RAIN</span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/nyj.png" alt="">NYJ</span>
+    <span class="team-away">GB<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/gb.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>NYJ -3.5</b> &nbsp;·&nbsp; O/U <b>44.5</b></div>
+  <div class="venue">MetLife Stadium · East Rutherford, NJ</div>
+  <div class="metaline">GUSTS 27 mph | RAIN / SHOWERS | PRECIP CHANCE 78%</div>
+  <div class="metaline">Referee: Scott Novak</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">NYJ 21</span><span class="dash"> — </span><span class="away">GB 22</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+0.5</td><td class="edgeval">4.0 pts → GB</td></tr><tr><td>Total</td><td>43.5</td><td class="edgeval">1.0 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Spread: Opened -4.5 → Now -3.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: GB</span></div>
+  <div class="bar"><div class="bar-a" style="width:68.0%"></div><div class="bar-b" style="width:32.0%"></div></div>
+  <div class="barnum">NYJ 68% / GB 32%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:47.0%"></div><div class="bar-b" style="width:53.0%"></div></div>
+  <div class="barnum">NYJ 47% / GB 53%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:57.0%"></div><div class="bar-d" style="width:43.0%"></div></div>
+  <div class="barnum">OVER 57% / UNDER 43%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>10</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for NYJ (+1.8 pts).</li><li>Referee Scott Novak: 40% career home ATS (110g) — mild lean toward GB (0.16 pts, soft signal).</li><li>Injuries move the number 0.9 pts toward NYJ. <b>NYJ −0.2</b>: LB Jamien Sherwood (Questionable) −0.2 · <b>GB −1.1</b>: CB Brandon Cisse (Questionable) −0.3, DE Barryn Sorrell (Questionable) −0.2, G Zach Bako-Bewele (Questionable) −0.2, LB Lukas Van Ness (Questionable) −0.1, DT Devonte Wyatt (Questionable) −0.1</li></ul>
+  <div class="premodel">Our own read before blending toward the market: NYJ +2.5 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">NYJ QB B-</span><span class="badge">NYJ RB B-</span><span class="badge">NYJ WR B-</span><span class="badge">NYJ TE C+</span><span class="badge">NYJ OL C+</span><span class="badge">NYJ DEF B-</span><span class="badge">GB QB B-</span><span class="badge">GB RB C</span><span class="badge">GB WR B</span><span class="badge">GB TE B-</span><span class="badge">GB OL B-</span><span class="badge">GB DEF B-</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span><span class="pill pill-weather pill-rain">RAIN</span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/tb.png" alt="">TB</span>
+    <span class="team-away">CLE<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/cle.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>TB -8.5</b> &nbsp;·&nbsp; O/U <b>41.5</b></div>
+  <div class="venue">Raymond James Stadium · Tampa, FL</div>
+  <div class="metaline">RAIN / SHOWERS | PRECIP CHANCE 79%</div>
+  <div class="metaline">Referee: Brad Rogers</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">TB 25</span><span class="dash"> — </span><span class="away">CLE 18</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-7.0</td><td class="edgeval">1.5 pts → CLE</td></tr><tr><td>Total</td><td>42.5</td><td class="edgeval">1.0 pts → OVER</td></tr></table>
+  <div class="linemove">📈 Line movement: Total: Opened 40.5 → Now 41.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: TB</span></div>
+  <div class="bar"><div class="bar-a" style="width:84.0%"></div><div class="bar-b" style="width:16.0%"></div></div>
+  <div class="barnum">TB 84% / CLE 16%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:94.0%"></div><div class="bar-b" style="width:6.0%"></div></div>
+  <div class="barnum">TB 94% / CLE 6%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:67.0%"></div><div class="bar-d" style="width:33.0%"></div></div>
+  <div class="barnum">OVER 67% / UNDER 33%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>6</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for TB (+1.8 pts).</li><li>Referee Brad Rogers: 52% career home ATS (92g) — no meaningful lean.</li><li>Injuries move the number 0.2 pts toward TB. <b>TB −0.1</b>: CB Jacob Parrish (Questionable) −0.1 · <b>CLE −0.3</b>: C Elgton Jenkins (Questionable) −0.2</li></ul>
+  <div class="premodel">Our own read before blending toward the market: TB -6.0 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">TB QB C+</span><span class="badge">TB RB B-</span><span class="badge">TB WR B</span><span class="badge">TB TE C+</span><span class="badge">TB OL C+</span><span class="badge">TB DEF B-</span><span class="badge">CLE QB C</span><span class="badge">CLE RB C+</span><span class="badge">CLE WR B-</span><span class="badge">CLE TE C</span><span class="badge">CLE OL C+</span><span class="badge">CLE DEF B-</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/ten.png" alt="">TEN</span>
+    <span class="team-away">PHI<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/phi.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>TEN -7.0</b> &nbsp;·&nbsp; O/U <b>39.5</b></div>
+  <div class="venue">Nissan Stadium · Nashville, TN</div>
+  <div class="metaline">93°F, wind 7mph</div>
+  <div class="metaline">Referee: Clay Martin</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">TEN 21</span><span class="dash"> — </span><span class="away">PHI 21</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+0.0</td><td class="edgeval">7.0 pts → PHI</td></tr><tr><td>Total</td><td>42.5</td><td class="edgeval">3.0 pts → OVER</td></tr></table>
+  <div class="linemove">📈 Line movement: Total: Opened 40.5 → Now 39.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:92.0%"></div><div class="bar-b" style="width:8.0%"></div></div>
+  <div class="barnum">TEN 92% / PHI 8%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:94.0%"></div><div class="bar-b" style="width:6.0%"></div></div>
+  <div class="barnum">TEN 94% / PHI 6%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:54.0%"></div><div class="bar-d" style="width:46.0%"></div></div>
+  <div class="barnum">OVER 54% / UNDER 46%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>10</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for TEN (+1.8 pts).</li><li>Referee Clay Martin: 44% career home ATS (121g) — mild lean toward PHI (0.10 pts, soft signal).</li><li>Injuries move the number 1.2 pts toward TEN. <b>PHI −1.2</b>: G Landon Dickerson (Injured Reserve) −0.5, CB Cooper DeJean (Questionable) −0.4, DT Jalen Carter (Questionable) −0.2, SAF Marcus Epps (Questionable) −0.1</li></ul>
+  <div class="premodel">Our own read before blending toward the market: TEN +2.5 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">TEN QB C</span><span class="badge">TEN RB C</span><span class="badge">TEN WR C+</span><span class="badge">TEN TE C</span><span class="badge">TEN OL C</span><span class="badge">TEN DEF C+</span><span class="badge">PHI QB B</span><span class="badge">PHI RB B-</span><span class="badge">PHI WR B-</span><span class="badge">PHI TE A-</span><span class="badge">PHI OL B</span><span class="badge">PHI DEF C+</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/den.png" alt="">DEN<span title="Loud venue — modest home-field bump">🔈</span></span>
+    <span class="team-away">JAX<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/jax.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>DEN -2.5</b> &nbsp;·&nbsp; O/U <b>45.5</b></div>
+  <div class="venue">Empower Field at Mile High · Denver, CO</div>
+  <div class="metaline">PRECIP CHANCE 44%</div>
+  <div class="metaline">Referee: John Hussey</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">DEN 20</span><span class="dash"> — </span><span class="away">JAX 24</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+4.0</td><td class="edgeval">6.5 pts → JAX</td></tr><tr><td>Total</td><td>44.5</td><td class="edgeval">1.0 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Total: Opened 44.5 → Now 45.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:48.0%"></div><div class="bar-b" style="width:52.0%"></div></div>
+  <div class="barnum">DEN 48% / JAX 52%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:49.0%"></div><div class="bar-b" style="width:51.0%"></div></div>
+  <div class="barnum">DEN 49% / JAX 51%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:80.0%"></div><div class="bar-d" style="width:20.0%"></div></div>
+  <div class="barnum">OVER 80% / UNDER 20%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>8</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for DEN (+2.3 pts).</li><li>Referee John Hussey: 58% career home ATS (167g) — mild lean toward DEN (0.13 pts, soft signal).</li><li>Injuries move the number 0.3 pts toward DEN. <b>DEN −0.3</b>: RB RJ Harvey (Questionable) −0.2 · <b>JAX −0.5</b>: WR Jakobi Meyers (Questionable) −0.3, WR Brian Thomas Jr. (Questionable) −0.1, G Cole Van Lanen (Questionable) −0.1</li></ul>
+  <div class="premodel">Our own read before blending toward the market: DEN +6.5 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">DEN QB C</span><span class="badge">DEN RB B-</span><span class="badge">DEN WR C</span><span class="badge">DEN TE B-</span><span class="badge">DEN OL C</span><span class="badge">DEN DEF B-</span><span class="badge">JAX QB A-</span><span class="badge">JAX RB B-</span><span class="badge">JAX WR A-</span><span class="badge">JAX TE A-</span><span class="badge">JAX OL A-</span><span class="badge">JAX DEF B</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/lac.png" alt="">LAC</span>
+    <span class="team-away">LV<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/lv.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>LAC -6.5</b> &nbsp;·&nbsp; O/U <b>43.5</b></div>
+  <div class="venue">SoFi Stadium · Inglewood, CA</div>
+  <div class="metaline">Dome</div>
+  <div class="metaline">Referee: Bill Vinovich</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">LAC 23</span><span class="dash"> — </span><span class="away">LV 20</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-3.0</td><td class="edgeval">3.5 pts → LV</td></tr><tr><td>Total</td><td>43.0</td><td class="edgeval">0.5 pts → UNDER</td></tr></table>
+  
+  
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>10</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for LAC (+1.8 pts).</li><li>Divisional rivalry game — total compressed; these tend to play closer than the power-rating gap alone suggests.</li><li>Referee Bill Vinovich: 47% career home ATS (250g) — no meaningful lean.</li><li>Injuries move the number 0.7 pts toward LV. <b>LAC −1.0</b>: CB Elijah Molden (Questionable) −0.3, DE Dalvin Tomlinson (Questionable) −0.2, WR Ladd McConkey (Questionable) −0.2, OT Trey Pipkins (Questionable) −0.1 · <b>LV −0.3</b>: CB Darien Porter (Questionable) −0.3</li></ul>
+  <div class="premodel">Our own read before blending toward the market: LAC -1.5 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">LAC QB C+</span><span class="badge">LAC RB C</span><span class="badge">LAC WR C+</span><span class="badge">LAC TE C</span><span class="badge">LAC OL C-</span><span class="badge">LAC DEF B-</span><span class="badge">LV QB C+</span><span class="badge">LV RB C+</span><span class="badge">LV WR C+</span><span class="badge">LV TE C</span><span class="badge">LV OL C+</span><span class="badge">LV DEF B</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/ari.png" alt="">ARI</span>
+    <span class="team-away">SEA<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/sea.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>ARI -3.5</b> &nbsp;·&nbsp; O/U <b>41.5</b></div>
+  <div class="venue">State Farm Stadium · Glendale, AZ</div>
+  <div class="metaline">97°F, wind 9mph</div>
+  <div class="metaline">Referee: Alan Eck</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">ARI 21</span><span class="dash"> — </span><span class="away">SEA 21</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+0.5</td><td class="edgeval">4.0 pts → SEA</td></tr><tr><td>Total</td><td>42.5</td><td class="edgeval">1.0 pts → OVER</td></tr></table>
+  <div class="linemove">📈 Line movement: Spread: Opened -4.5 → Now -3.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: SEA</span></div>
+  <div class="bar"><div class="bar-a" style="width:71.0%"></div><div class="bar-b" style="width:29.0%"></div></div>
+  <div class="barnum">ARI 71% / SEA 29%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:60.0%"></div><div class="bar-b" style="width:40.0%"></div></div>
+  <div class="barnum">ARI 60% / SEA 40%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:56.0%"></div><div class="bar-d" style="width:44.0%"></div></div>
+  <div class="barnum">OVER 56% / UNDER 44%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>8</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for ARI (+1.8 pts).</li><li>Rest/travel edge favors SEA (1.2 pts) — short week or extra rest differential.</li><li>Divisional rivalry game — total compressed; these tend to play closer than the power-rating gap alone suggests.</li><li>Referee Alan Eck: 58% career home ATS (50g) — mild lean toward ARI (0.13 pts, soft signal).</li><li>Injuries move the number 0.3 pts toward ARI. <b>ARI −0.7</b>: LB Jack Gibbens (Questionable) −0.2, G Isaac Seumalo (Questionable) −0.2, CB Max Melton (Questionable) −0.2 · <b>SEA −1.0</b>: QB Sam Darnold (Out) −0.5, WR Cooper Kupp (Questionable) −0.3, G Anthony Bradford (Questionable) −0.2</li></ul>
+  <div class="premodel">Our own read before blending toward the market: ARI +2.0 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">ARI QB B</span><span class="badge">ARI RB C+</span><span class="badge">ARI WR B-</span><span class="badge">ARI TE B-</span><span class="badge">ARI OL B</span><span class="badge">ARI DEF B-</span><span class="badge">SEA QB B+</span><span class="badge">SEA RB B-</span><span class="badge">SEA WR B-</span><span class="badge">SEA TE B</span><span class="badge">SEA OL B</span><span class="badge">SEA DEF B</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/dal.png" alt="">DAL</span>
+    <span class="team-away">WAS<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/wsh.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>DAL -4.5</b> &nbsp;·&nbsp; O/U <b>50.5</b></div>
+  <div class="venue">AT&T Stadium · Arlington, TX</div>
+  <div class="metaline">Forecast pending</div>
+  <div class="metaline">Referee: Shawn Hochuli</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">DAL 25</span><span class="dash"> — </span><span class="away">WAS 20</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-4.5</td><td class="edgeval">0.0 pts</td></tr><tr><td>Total</td><td>45.0</td><td class="edgeval">5.5 pts → UNDER</td></tr></table>
+  
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:45.0%"></div><div class="bar-b" style="width:55.0%"></div></div>
+  <div class="barnum">DAL 45% / WAS 55%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:45.0%"></div><div class="bar-b" style="width:55.0%"></div></div>
+  <div class="barnum">DAL 45% / WAS 55%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:53.0%"></div><div class="bar-d" style="width:47.0%"></div></div>
+  <div class="barnum">OVER 53% / UNDER 47%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>2</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for DAL (+1.8 pts).</li><li>Divisional rivalry game — total compressed; these tend to play closer than the power-rating gap alone suggests.</li><li>Referee Shawn Hochuli: 47% career home ATS (121g) — no meaningful lean.</li><li>Injuries move the number 0.9 pts toward DAL. <b>DAL −0.2</b>: LB DeMarvion Overshown (Questionable) −0.1 · <b>WAS −1.1</b>: DE Charles Omenihu (Questionable) −0.2, TE Chig Okonkwo (Questionable) −0.2, LB Odafe Oweh (Questionable) −0.2, LB K'Lavon Chaisson (Questionable) −0.1, NT Daron Payne (Questionable) −0.1, LB Frankie Luvu (Questionable) −0.1, WR Jaylin Lane (Questionable) −0.1</li></ul>
+  <div class="premodel">Our own read before blending toward the market: DAL -4.5 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">DAL QB B+</span><span class="badge">DAL RB B</span><span class="badge">DAL WR B</span><span class="badge">DAL TE B+</span><span class="badge">DAL OL B+</span><span class="badge">DAL DEF B-</span><span class="badge">WAS QB B-</span><span class="badge">WAS RB B-</span><span class="badge">WAS WR B+</span><span class="badge">WAS TE C+</span><span class="badge">WAS OL B-</span><span class="badge">WAS DEF B-</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/sf.png" alt="">SF</span>
+    <span class="team-away">MIA<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/mia.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>SF -13.5</b> &nbsp;·&nbsp; O/U <b>44.5</b></div>
+  <div class="venue">Levi's Stadium · Santa Clara, CA</div>
+  <div class="metaline">70°F, wind 10mph</div>
+  <div class="metaline">Referee: Shawn Smith</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">SF 26</span><span class="dash"> — </span><span class="away">MIA 18</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-8.0</td><td class="edgeval">5.5 pts → MIA</td></tr><tr><td>Total</td><td>44.0</td><td class="edgeval">0.5 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Spread: Opened -12.5 → Now -13.5 · Total: Opened 46.5 → Now 44.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: MIA</span></div>
+  <div class="bar"><div class="bar-a" style="width:86.0%"></div><div class="bar-b" style="width:14.0%"></div></div>
+  <div class="barnum">SF 86% / MIA 14%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:74.0%"></div><div class="bar-b" style="width:26.0%"></div></div>
+  <div class="barnum">SF 74% / MIA 26%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:54.0%"></div><div class="bar-d" style="width:46.0%"></div></div>
+  <div class="barnum">OVER 54% / UNDER 46%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>10</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for SF (+1.8 pts).</li><li>Rest/travel edge favors SF (0.9 pts) — short week or extra rest differential.</li><li>Referee Shawn Smith: 51% career home ATS (118g) — no meaningful lean.</li><li>Injuries move the number 0.8 pts toward MIA. <b>SF −0.9</b>: WR De'Zhaun Stribling (Out) −0.3, DE Keion White (Questionable) −0.2, TE George Kittle (Questionable) −0.1, DE Khalid Kareem (Questionable) −0.1 · <b>MIA −0.1</b>: LB Chop Robinson (Questionable) −0.1</li></ul>
+  <div class="premodel">Our own read before blending toward the market: SF -6.0 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">SF QB B+</span><span class="badge">SF RB B</span><span class="badge">SF WR B</span><span class="badge">SF TE B-</span><span class="badge">SF OL B+</span><span class="badge">SF DEF B-</span><span class="badge">MIA QB B</span><span class="badge">MIA RB C+</span><span class="badge">MIA WR C+</span><span class="badge">MIA TE C+</span><span class="badge">MIA OL C</span><span class="badge">MIA DEF B-</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/kc.png" alt="">KC<span title="Elite crowd noise — bigger home-field bump">🔊</span></span>
+    <span class="team-away">IND<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/ind.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>KC -6.5</b> &nbsp;·&nbsp; O/U <b>46.5</b></div>
+  <div class="venue">GEHA Field at Arrowhead · Kansas City, MO</div>
+  <div class="metaline">GUSTS 20 mph | PRECIP CHANCE 56%</div>
+  <div class="metaline">Referee: Craig Wrolstad</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">KC 25</span><span class="dash"> — </span><span class="away">IND 19</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-6.0</td><td class="edgeval">0.5 pts → IND</td></tr><tr><td>Total</td><td>45.0</td><td class="edgeval">1.5 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Total: Opened 47.5 → Now 46.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: IND</span></div>
+  <div class="bar"><div class="bar-a" style="width:81.0%"></div><div class="bar-b" style="width:19.0%"></div></div>
+  <div class="barnum">KC 81% / IND 19%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:64.0%"></div><div class="bar-b" style="width:36.0%"></div></div>
+  <div class="barnum">KC 64% / IND 36%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:65.0%"></div><div class="bar-d" style="width:35.0%"></div></div>
+  <div class="barnum">OVER 65% / UNDER 35%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>2</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Elevated home-field bonus for KC (+3.0 pts) — a notably loud/tough road venue.</li><li>Referee Craig Wrolstad: 45% career home ATS (186g) — mild lean toward IND (0.09 pts, soft signal).</li><li>Injuries move the number 0.1 pts toward KC. <b>KC −0.2</b>: DE Chris Jones (Questionable) −0.2 · <b>IND −0.3</b>: WR Alec Pierce (Questionable) −0.2</li></ul>
+  <div class="premodel">Our own read before blending toward the market: KC -6.0 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">KC QB B-</span><span class="badge">KC RB A-</span><span class="badge">KC WR B-</span><span class="badge">KC TE B</span><span class="badge">KC OL B</span><span class="badge">KC DEF B-</span><span class="badge">IND QB C</span><span class="badge">IND RB B-</span><span class="badge">IND WR B-</span><span class="badge">IND TE C+</span><span class="badge">IND OL C+</span><span class="badge">IND DEF C+</span></div>
+</div></details>
+</div>
+<div class="card">
+  <div class="card-top"><span></span></div>
+  <div class="teams"><span>HOME</span><span>AWAY</span></div>
+  <div class="team-names">
+    <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/lar.png" alt="">LA</span>
+    <span class="team-away">NYG<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png" alt=""></span>
+  </div>
+  <div class="dkline">DraftKings: <b>LA -7.0</b> &nbsp;·&nbsp; O/U <b>48.5</b></div>
+  <div class="venue">SoFi Stadium · Inglewood, CA</div>
+  <div class="metaline">Dome</div>
+  <div class="metaline">Referee: Brad Allen</div>
+  <div class="section-label">PROJECTED SCORE</div>
+  <div class="projscore"><span class="home">LA 24</span><span class="dash"> — </span><span class="away">NYG 22</span></div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-2.0</td><td class="edgeval">5.0 pts → NYG</td></tr><tr><td>Total</td><td>45.5</td><td class="edgeval">3.0 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Total: Opened 47.5 → Now 48.5</div>
+  <div class="section-label">PUBLIC BETTING SPLITS</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: LA</span></div>
+  <div class="bar"><div class="bar-a" style="width:28.0%"></div><div class="bar-b" style="width:72.0%"></div></div>
+  <div class="barnum">LA 28% / NYG 72%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:54.0%"></div><div class="bar-b" style="width:46.0%"></div></div>
+  <div class="barnum">LA 54% / NYG 46%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:58.0%"></div><div class="bar-d" style="width:42.0%"></div></div>
+  <div class="barnum">OVER 58% / UNDER 42%</div>
+</div>
+  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>8</b></div>
+  <details><summary>Game Report</summary>
+<div class="hwg">
+  <ul class="report-list"><li>Standard home-field edge for LA (+1.8 pts).</li><li>Rest/travel edge favors LA (0.9 pts) — short week or extra rest differential.</li><li>Referee Brad Allen: 52% career home ATS (182g) — no meaningful lean.</li><li>Injuries move the number 1.3 pts toward NYG. <b>LA −1.3</b>: DE Myles Garrett (Out) −0.6, LB Nate Landman (Questionable) −0.2, SAF Kamren Kinchens (Questionable) −0.2, TE Davis Allen (Questionable) −0.1</li></ul>
+  <div class="premodel">Our own read before blending toward the market: LA +0.0 — final number blends that 70% with the market line.</div>
+  <div class="grades"><span class="badge">LA QB C</span><span class="badge">LA RB B</span><span class="badge">LA WR B-</span><span class="badge">LA TE C+</span><span class="badge">LA OL B-</span><span class="badge">LA DEF B-</span><span class="badge">NYG QB B+</span><span class="badge">NYG RB B</span><span class="badge">NYG WR B</span><span class="badge">NYG TE B+</span><span class="badge">NYG OL A-</span><span class="badge">NYG DEF C+</span></div>
+</div></details>
+</div></div>
+
+  <div class="footer">
+    Projected score splits the model's total by its spread. Edge is the model's number minus the market's —
+    for spread it's points toward the team the model favors more than the market; for total it's points toward
+    Over or Under. Public betting splits show % of bets (ticket count) vs. % of handle (money) per side — when
+    handle leans one way notably more than bets do, that's the classic signature of sharp money, flagged at an
+    8-point gap. Lean Score blends distance from a coin-flip line, sample size
+    behind the underlying grades, and how many situational adjustments stacked into the number — it's useful for
+    ranking THIS week's games against each other, but a 2016-2024 backtest (2,331 graded picks) found it does
+    not yet track actual win rate (48.9% ATS overall, flat across score buckets), so treat it as "how strongly
+    the model leans," not a calibrated probability. QB/RB/WR/TE grades are individual EPA-based; OL/DEF use a
+    snap-weighted team-unit proxy since no public per-player data exists for those positions. Power rankings are
+    the model's team scores (0-100, 50 = league average) through the last completed week: a recency-weighted
+    window of the last 8 games, with weeks 1-6 blending in last season's exit score (half at week 1, tapering
+    to under a tenth by week 6). Each returning player's own grade is carried in from last season the same way,
+    so a QB who changed teams brings his number with him. GAMES is how many of this season's games are in the
+    window. Injury scale (spread points for a full-time starter ruled Out): QB 5 · RB, WR, OT, DE/EDGE, CB 1 ·
+    TE, OLB 0.75 · G, C, DT, LB, S 0.5. Doubtful counts 90% of that, Questionable 40%, and everything is scaled
+    by the player's share of his unit's snaps over his team's last three games, with a 7-point cap per team.
+    The per-player numbers in each Game Report are those points, applied to the model number before the 70/30
+    market blend. See nfl_handicapping_framework.md for the full model design.
+  </div>
+</div>
+</body></html>
