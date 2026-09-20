@@ -17,8 +17,16 @@ from db.db import connect
 from projection.injury_adjust import team_injury_impact, MIN_POINTS_TO_NOTE
 
 OUT_PATH = Path(__file__).parent / "dashboard.html"
-BEST_BET_THRESHOLD = 65
 SHARP_DIVERGENCE_THRESHOLD = 8.0  # handle% - bets% gap that earns a "Sharp" flag
+
+# A BEST_BET_THRESHOLD = 65 lean-score gate used to live here, on the assumption that a
+# higher lean score meant a better play. Graded over 2,654 games it did the opposite,
+# and monotonically: the leans it SHOWED went 337-377 (47.2%) while the ones it HID went
+# 916-922 (49.8%), and raising the bar widened the gap (70+ showed 46.9%). The old lean
+# score scaled with how far the model sat from the market, and those gaps are mostly
+# shrinkage artifacts rather than information -- see the note in projection/project.py.
+# Filtering on it surfaced the model's worst leans, so the gate is gone: the board shows
+# every lean and prints its real measured record next to them.
 
 CSS = """
 :root{
@@ -214,6 +222,26 @@ def _split_bar(pct_a, pct_b, cls_a, cls_b):
     return f'<div class="bar"><div class="bar-{cls_a}" style="width:{wa:.1f}%"></div><div class="bar-{cls_b}" style="width:{100-wa:.1f}%"></div></div>'
 
 
+def measured_ats_record(con, season: int) -> str:
+    """The model's own graded ATS record, read straight from backtest_log, so the
+    leans section can never read as an edge claim. Falls back to all seasons when
+    the current one has too few graded games to say anything."""
+    def _row(sql, args):
+        r = con.execute(sql, args).fetchone()
+        return (r["w"] or 0), (r["l"] or 0)
+
+    base = ("SELECT SUM(ats_result='win') w, SUM(ats_result='loss') l FROM backtest_log "
+            "WHERE ats_result IS NOT NULL")
+    w, l = _row(base + " AND season=?", (season,))
+    label = f"{season}"
+    if w + l < 32:
+        w, l = _row(base, ())
+        label = "all-time"
+    if w + l == 0:
+        return "no graded games yet"
+    return f"{label} ATS {w}-{l} ({100 * w / (w + l):.1f}%) · break-even is 52.4%"
+
+
 def _pick_text(bet, g, home):
     """'BUF -3.5' for a spread pick, 'OVER 44.5' for a total pick."""
     if bet["bet_type"] == "spread":
@@ -246,6 +274,8 @@ def render_week(season: int, week: int) -> Path:
             (season, week),
         ).fetchall():
             bets_by_game.setdefault(r["game_id"], []).append(r)
+
+        ats_record_line = measured_ats_record(con, season)
 
         group_scores = {
             (r["team_abbr"], r["position_group"]): r["score"]
@@ -322,8 +352,7 @@ def render_week(season: int, week: int) -> Path:
         home, away = g["home_abbr"], g["away_abbr"]
         conf = g["confidence_score"]
         game_bets = bets_by_game.get(g["game_id"], [])
-        qualifying_bets = [b for b in game_bets if (b["confidence_score"] or 0) >= BEST_BET_THRESHOLD]
-        is_best_bet = bool(qualifying_bets)
+        qualifying_bets = [b for b in game_bets if b["confidence_score"] is not None]
 
         for b in game_bets:
             if b["confidence_score"] is None:
@@ -345,12 +374,12 @@ def render_week(season: int, week: int) -> Path:
   <div class="bb-pick"><span class="pick-val">{pick_txt}</span><span class="pick-type">{bet_type_label}</span></div>
   <div class="bb-reason">{b['reasoning_text'] or ''}</div>
   <div class="confbar"><div class="confbar-fill" style="width:{confbar_pct:.0f}%"></div></div>
-  <div class="confrow"><span>Lean Score</span><b>{b['confidence_score']:.0f}</b></div>
+  <div class="confrow"><span>Data Strength</span><b>{b['confidence_score']:.0f}</b></div>
 </div>""")
 
         # --- full card ---
         weather_badge = _weather_badge(g)
-        best_pill = '<span class="pill pill-best">★ BEST BET</span>' if is_best_bet else "<span></span>"
+        best_pill = "<span></span>"
 
         venue = VENUES.get(home, "")
         if g["roof_type"] == "dome":
@@ -514,7 +543,7 @@ def render_week(season: int, week: int) -> Path:
             speaker = '<span title="Loud venue — modest home-field bump">🔈</span>'
 
         game_cards.append(f"""
-<div class="card{' best' if is_best_bet else ''}">
+<div class="card">
   <div class="card-top">{best_pill}{weather_badge}</div>
   <div class="teams"><span>HOME</span><span>AWAY</span></div>
   <div class="team-names">
@@ -530,7 +559,7 @@ def render_week(season: int, week: int) -> Path:
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr>{edge_rows}</table>
   {line_movement_html}
   {splits_block}
-  <div class="confidence-row"><span>Lean Score <span class="leannote">(relative rank, not a win probability)</span></span><b>{conf_val}</b></div>
+  <div class="confidence-row"><span>Data Strength <span class="leannote">(how much data is behind the rating — not a bet grade)</span></span><b>{conf_val}</b></div>
   <details><summary>Game Report</summary>{game_report}</details>
 </div>""")
 
@@ -587,13 +616,14 @@ def render_week(season: int, week: int) -> Path:
     )
 
     n_games = len(games)
-    n_best = len(best_bet_cards)
+    n_leans = len(best_bet_cards)          # one card per bet (a game can have both)
+    n_lean_games = sum(1 for g in games if bets_by_game.get(g["game_id"]))
     ticker_html = "".join(ticker_items) or '<div class="ticker-item">No graded games this week yet</div>'
     ticker_html = ticker_html + ticker_html  # duplicate for seamless marquee loop
 
     best_bets_section = (
         f'<div class="bb-grid">{"".join(best_bet_cards)}</div>' if best_bet_cards else
-        f'<div class="empty-note">No plays clear the {BEST_BET_THRESHOLD}+ lean-score bar this week.</div>'
+        '<div class="empty-note">No model leans this week — every game sits on the market number.</div>'
     )
 
     html_doc = f"""<!doctype html><html><head><meta charset="utf-8">
@@ -616,7 +646,7 @@ def render_week(season: int, week: int) -> Path:
     <span><span class="dot" style="background:#e5e7eb"></span>Snow</span>
   </div>
 
-  <div class="section-title">BEST BETS OF THE WEEK <span class="n">{n_best} qualify at {BEST_BET_THRESHOLD}+ lean score</span></div>
+  <div class="section-title">MODEL LEANS <span class="n">{n_leans} leans across {n_lean_games} games · {ats_record_line}</span></div>
   {best_bets_section}
 
   {power_section}
@@ -629,11 +659,15 @@ def render_week(season: int, week: int) -> Path:
     for spread it's points toward the team the model favors more than the market; for total it's points toward
     Over or Under. Public betting splits show % of bets (ticket count) vs. % of handle (money) per side — when
     handle leans one way notably more than bets do, that's the classic signature of sharp money, flagged at an
-    {SHARP_DIVERGENCE_THRESHOLD:.0f}-point gap. Lean Score blends distance from a coin-flip line, sample size
-    behind the underlying grades, and how many situational adjustments stacked into the number — it's useful for
-    ranking THIS week's games against each other, but a 2016-2024 backtest (2,331 graded picks) found it does
-    not yet track actual win rate (48.9% ATS overall, flat across score buckets), so treat it as "how strongly
-    the model leans," not a calibrated probability. QB/RB/WR/TE grades are individual EPA-based; OL/DEF use a
+    {SHARP_DIVERGENCE_THRESHOLD:.0f}-point gap. Data Strength (0-100) says how much data sits behind a game's
+    two team ratings, docked for how many situational adjustments had to carry the number — it is a data-quality
+    reading, not a bet grade. It used to also scale with how far the model sat from the market, and a 2016-2026
+    backtest over 2,654 graded games showed that ranking was backwards: leans scoring 65+ went 47.2% ATS while
+    everything below went 49.8%. The cause is mechanical — the model's spread is shrunk toward zero in proportion
+    to its own weakness (spread sd 4.65 vs the market's 6.09), so its biggest disagreements are mostly that
+    shrinkage rather than information, which is also why 74.6% of all leans historically landed on the underdog.
+    The model has never beaten the closing line (49.1% ATS over 2,654 games against a 52.4% break-even), so every
+    lean here is a read, not an edge. QB/RB/WR/TE grades are individual EPA-based; OL/DEF use a
     snap-weighted team-unit proxy since no public per-player data exists for those positions. Power rankings are
     the model's team scores (0-100, 50 = league average) through the last completed week: a recency-weighted
     window of the last 8 games, with weeks 1-6 blending in last season's exit score (half at week 1, tapering

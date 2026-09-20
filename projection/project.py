@@ -107,7 +107,15 @@ def project_week(season: int, week: int, coefficient: float | None = None,
 
             pre_shrink = base_diff + hfa + rest + weather_spread + rivalry_spread + ref + injury
             if enabled["rivalry"]:
-                pre_shrink = adj.rivalry_compress_spread(pre_shrink, bool(g["is_divisional"]))
+                compressed = adj.rivalry_compress_spread(pre_shrink, bool(g["is_divisional"]))
+                # The compression is the ONLY way rivalry reaches the spread --
+                # adj.rivalry_adjust() returns 0.0 on its spread leg by design. Fold the
+                # delta into rivalry_spread so `rivalry_adj` stores the real effect:
+                # backtest/log_results.py reads that column to decide whether a factor
+                # "fired", and it was reporting rivalry as never firing across 2,654
+                # games while quietly shaving 10% off every divisional spread.
+                rivalry_spread += compressed - pre_shrink
+                pre_shrink = compressed
 
             # nflverse's spread_line (stored as closing_spread) uses the same convention
             # as pre_shrink here: positive = home favored by that many points. Confirmed
@@ -118,7 +126,16 @@ def project_week(season: int, week: int, coefficient: float | None = None,
             else:
                 final_spread = pre_shrink
 
-            base_total = 44.0  # league-average total as a neutral anchor; refined by adjustments only
+            # A flat league-average ANCHOR, not a per-game forecast -- the only things
+            # that move it are weather and rivalry, so the stored total has sd 1.39
+            # against the market's 4.41. Two replacements were backtested over 2016-2026
+            # and both lost: an opponent-adjusted team scoring model (ridge points-for /
+            # points-against, walk-forward) came in at 48.7% O/U vs this anchor's 50.2%
+            # and carried a NEGATIVE incremental coefficient against the market total,
+            # and a rolling league average scored 48.8%. The closing total is efficient
+            # -- actual_total ~= 0.52 + 0.998 * market -- so there is nothing here to
+            # beat. Treat the printed total as an anchor and the O/U lean as a coin flip.
+            base_total = 44.0
             final_total_adj = weather_total + rivalry_total
             market_total = g["closing_total"]
             model_total = base_total + final_total_adj
@@ -128,23 +145,32 @@ def project_week(season: int, week: int, coefficient: float | None = None,
             win_prob = _win_prob(final_spread)
 
             certainty = min(1.0, ((home_n or 0) + (away_n or 0)) / 16.0)
-            n_adjustments_fired = sum(1 for v in (hfa, rest, weather_spread, rivalry_spread, ref, injury) if abs(v) > 0.01)
+            # Count only the legs that can actually be non-zero. weather's spread leg is
+            # structurally 0.0 (see adjustments.py) and rivalry now reaches the spread
+            # solely through the compression delta folded in above, so the old tuple was
+            # counting two terms that never moved.
+            n_adjustments_fired = sum(1 for v in (hfa, rest, rivalry_spread, ref, injury) if abs(v) > 0.01)
             stack_penalty = max(0.0, 1.0 - 0.08 * n_adjustments_fired)
 
-            # Confidence is driven by how much we DISAGREE with the market (the edge),
-            # not by how lopsided the pick itself looks -- a 10-point favorite the market
-            # also has at 10 is not an actionable edge, a 1-point disagreement backed by
-            # a full sample is more interesting than a big number built on no games.
+            # Confidence is a SAMPLE-STRENGTH figure, not a bet grade. It used to scale
+            # with |edge| -- how far we sat from the market -- on the theory that a bigger
+            # disagreement is a better bet. Measured over 2,654 graded games that is
+            # backwards: picks with |edge| >= 3 went 47.5% ATS while |edge| < 0.5 went
+            # ~49%, and the 80-100 confidence bucket (47.3%) trailed the 0-20 bucket
+            # (51.1%). The reason is mechanical -- a least-squares model is shrunk toward
+            # zero in proportion to its own weakness (our sd 4.65 vs the market's 6.09),
+            # so the largest "edges" are just the largest shrinkage artifacts, which is
+            # also why 74.6% of all picks landed on the underdog. Scaling confidence by
+            # edge therefore ranked the worst picks highest. What's left below is only
+            # what the number can honestly support: how much data is behind the two
+            # ratings, docked for how much of the answer came from the adjustment stack.
             spread_edge = (final_spread - market_spread) if market_spread is not None else None
             spread_confidence = (
-                round(100 * certainty * stack_penalty * min(1.0, abs(spread_edge) / 4.0 + 0.2), 1)
-                if spread_edge is not None else None
+                round(100 * certainty * stack_penalty, 1) if spread_edge is not None else None
             )
             total_edge = (final_total - market_total) if market_total is not None else None
-            total_stack_penalty = max(0.0, 1.0 - 0.08 * sum(1 for v in (weather_total, rivalry_total) if abs(v) > 0.01))
             total_confidence = (
-                round(100 * certainty * total_stack_penalty * min(1.0, abs(total_edge) / 4.0 + 0.2), 1)
-                if total_edge is not None else None
+                round(100 * certainty * stack_penalty, 1) if total_edge is not None else None
             )
             confidence = spread_confidence  # stored on `projections` as the headline number
 

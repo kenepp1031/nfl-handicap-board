@@ -10,8 +10,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from common import NOISE_ELITE, NOISE_LOUD
 
+# "ref" ships OFF: the officiating table is a current-week scrape (32 rows), so the
+# crew lean fired on 13 of 2,654 graded games and can never be validated historically.
+# It stays wired up so a real crew-history backfill can switch it back on.
 DEFAULT_ENABLED = {
-    "hfa": True, "weather": True, "rest": True, "rivalry": True, "ref": True, "injury": True,
+    "hfa": True, "weather": True, "rest": True, "rivalry": True, "ref": False, "injury": True,
 }
 
 LEAGUE_AVG_HFA = 1.8
@@ -28,7 +31,9 @@ def hfa_adjust(home_abbr: str) -> float:
 
 
 def weather_adjust(wind_mph: float | None, precip_type: str | None, temp_f: float | None) -> tuple[float, float]:
-    """Returns (spread_adj, total_adj). Wind suppresses passing efficiency and
+    """Returns (spread_adj, total_adj). NOTE: the spread leg is always 0.0 -- this
+    factor moves the total only. Anything reading `weather_adj` off `projections`
+    or `backtest_log` is reading a column that is zero on every row by design. Wind suppresses passing efficiency and
     total the most; precip/cold matter less than commonly assumed but still
     shave a little off the total. Spread impact is treated as negligible
     (affects both teams) except at extreme wind, which very slightly favors
@@ -57,7 +62,9 @@ def rest_adjust(rest_days_home: int | None, rest_days_away: int | None) -> float
 
 
 def rivalry_adjust(is_divisional: bool) -> tuple[float, float]:
-    """Returns (spread_adj, total_adj). Rivalry games run closer than the
+    """Returns (spread_adj, total_adj). The spread leg is always 0.0 here -- rivalry
+    reaches the spread through rivalry_compress_spread() below, whose delta project.py
+    folds back into `rivalry_adj` so the stored column reflects the real effect. Rivalry games run closer than the
     rating gap alone suggests and tend to go a bit under -- compress the total,
     nudge the spread toward pick'em rather than moving it directionally."""
     if is_divisional:
