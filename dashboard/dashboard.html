@@ -80,6 +80,10 @@ table.edge td.edgeval{color:var(--gold2);font-weight:700;}
 .bar-a{background:var(--teal);} .bar-b{background:var(--away);}
 .bar-c{background:var(--gold2);} .bar-d{background:var(--blue);}
 .barnum{font-size:11px;color:var(--text-dim);text-align:right;}
+.kalside{display:flex;align-items:baseline;gap:8px;font-size:11px;color:var(--text-dim);margin-bottom:2px;}
+.kalteam{font-weight:700;color:var(--text);min-width:38px;}
+.kalpct{font-weight:700;color:var(--gold2);min-width:34px;}
+.kalvol{margin-left:auto;text-align:right;}
 .confidence-row{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;padding-top:8px;
   border-top:1px solid #1c2338;}
 .confidence-row b{font-size:14px;}
@@ -114,7 +118,7 @@ table.power td.num{color:var(--text-dim);}
 </style></head>
 <body>
 <div class="ticker">
-  <div class="ticker-track"><div class="ticker-item">CAR @ ATL &nbsp;<b>ATL +2.5</b> (ATS) <span class="ticker-conf">68</span></div><div class="ticker-item">MIN @ CHI &nbsp;<b>UNDER 47.5</b> (O/U) <span class="ticker-conf">62</span></div><div class="ticker-item">CIN @ HOU &nbsp;<b>CIN +2.5</b> (ATS) <span class="ticker-conf">70</span></div><div class="ticker-item">PIT @ NE &nbsp;<b>OVER 41.5</b> (O/U) <span class="ticker-conf">73</span></div><div class="ticker-item">GB @ NYJ &nbsp;<b>UNDER 44.5</b> (O/U) <span class="ticker-conf">66</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>TEN +7.0</b> (ATS) <span class="ticker-conf">81</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>OVER 39.5</b> (O/U) <span class="ticker-conf">81</span></div><div class="ticker-item">LV @ LAC &nbsp;<b>UNDER 43.5</b> (O/U) <span class="ticker-conf">71</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>ARI +3.5</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>OVER 41.5</b> (O/U) <span class="ticker-conf">72</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>DAL -3.5</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>UNDER 50.5</b> (O/U) <span class="ticker-conf">72</span></div><div class="ticker-item">IND @ KC &nbsp;<b>UNDER 46.5</b> (O/U) <span class="ticker-conf">67</span></div><div class="ticker-item">NYG @ LA &nbsp;<b>NYG +7.0</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">CAR @ ATL &nbsp;<b>ATL +2.5</b> (ATS) <span class="ticker-conf">68</span></div><div class="ticker-item">MIN @ CHI &nbsp;<b>UNDER 47.5</b> (O/U) <span class="ticker-conf">62</span></div><div class="ticker-item">CIN @ HOU &nbsp;<b>CIN +2.5</b> (ATS) <span class="ticker-conf">70</span></div><div class="ticker-item">PIT @ NE &nbsp;<b>OVER 41.5</b> (O/U) <span class="ticker-conf">73</span></div><div class="ticker-item">GB @ NYJ &nbsp;<b>UNDER 44.5</b> (O/U) <span class="ticker-conf">66</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>TEN +7.0</b> (ATS) <span class="ticker-conf">81</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>OVER 39.5</b> (O/U) <span class="ticker-conf">81</span></div><div class="ticker-item">LV @ LAC &nbsp;<b>UNDER 43.5</b> (O/U) <span class="ticker-conf">71</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>ARI +3.5</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>OVER 41.5</b> (O/U) <span class="ticker-conf">72</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>DAL -3.5</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>UNDER 50.5</b> (O/U) <span class="ticker-conf">72</span></div><div class="ticker-item">IND @ KC &nbsp;<b>UNDER 46.5</b> (O/U) <span class="ticker-conf">67</span></div><div class="ticker-item">NYG @ LA &nbsp;<b>NYG +7.0</b> (ATS) <span class="ticker-conf">72</span></div></div>
+  <div class="ticker-track"><div class="ticker-item">CAR @ ATL &nbsp;<b>ATL +2.5</b> (ATS) <span class="ticker-conf">68</span></div><div class="ticker-item">MIN @ CHI &nbsp;<b>UNDER 47.5</b> (O/U) <span class="ticker-conf">62</span></div><div class="ticker-item">CIN @ HOU &nbsp;<b>CIN +3.0</b> (ATS) <span class="ticker-conf">70</span></div><div class="ticker-item">PIT @ NE &nbsp;<b>OVER 41.5</b> (O/U) <span class="ticker-conf">73</span></div><div class="ticker-item">GB @ NYJ &nbsp;<b>UNDER 44.5</b> (O/U) <span class="ticker-conf">66</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>TEN +7.0</b> (ATS) <span class="ticker-conf">81</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>OVER 39.5</b> (O/U) <span class="ticker-conf">81</span></div><div class="ticker-item">LV @ LAC &nbsp;<b>UNDER 43.5</b> (O/U) <span class="ticker-conf">71</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>ARI +3.5</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>OVER 40.5</b> (O/U) <span class="ticker-conf">72</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>DAL -3.5</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>UNDER 50.5</b> (O/U) <span class="ticker-conf">72</span></div><div class="ticker-item">IND @ KC &nbsp;<b>UNDER 46.5</b> (O/U) <span class="ticker-conf">67</span></div><div class="ticker-item">NYG @ LA &nbsp;<b>NYG +7.0</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">CAR @ ATL &nbsp;<b>ATL +2.5</b> (ATS) <span class="ticker-conf">68</span></div><div class="ticker-item">MIN @ CHI &nbsp;<b>UNDER 47.5</b> (O/U) <span class="ticker-conf">62</span></div><div class="ticker-item">CIN @ HOU &nbsp;<b>CIN +3.0</b> (ATS) <span class="ticker-conf">70</span></div><div class="ticker-item">PIT @ NE &nbsp;<b>OVER 41.5</b> (O/U) <span class="ticker-conf">73</span></div><div class="ticker-item">GB @ NYJ &nbsp;<b>UNDER 44.5</b> (O/U) <span class="ticker-conf">66</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>TEN +7.0</b> (ATS) <span class="ticker-conf">81</span></div><div class="ticker-item">PHI @ TEN &nbsp;<b>OVER 39.5</b> (O/U) <span class="ticker-conf">81</span></div><div class="ticker-item">LV @ LAC &nbsp;<b>UNDER 43.5</b> (O/U) <span class="ticker-conf">71</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>ARI +3.5</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">SEA @ ARI &nbsp;<b>OVER 40.5</b> (O/U) <span class="ticker-conf">72</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>DAL -3.5</b> (ATS) <span class="ticker-conf">72</span></div><div class="ticker-item">WAS @ DAL &nbsp;<b>UNDER 50.5</b> (O/U) <span class="ticker-conf">72</span></div><div class="ticker-item">IND @ KC &nbsp;<b>UNDER 46.5</b> (O/U) <span class="ticker-conf">67</span></div><div class="ticker-item">NYG @ LA &nbsp;<b>NYG +7.0</b> (ATS) <span class="ticker-conf">72</span></div></div>
 </div>
 <div class="wrap">
   <div class="headerrow">
@@ -148,7 +152,7 @@ table.power td.num{color:var(--text-dim);}
 </div>
 <div class="bb-card">
   <div class="bb-matchup"><img class="logo bb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/cin.png" alt=""> CIN @ HOU <img class="logo bb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/hou.png" alt=""></div>
-  <div class="bb-pick"><span class="pick-val">CIN +2.5</span><span class="pick-type">ATS</span></div>
+  <div class="bb-pick"><span class="pick-val">CIN +3.0</span><span class="pick-type">ATS</span></div>
   <div class="bb-reason">Our own number favors away by 5.8 pts vs. the market line. Nothing unusual — every input is in normal shape for this game.</div>
   <div class="confbar"><div class="confbar-fill" style="width:70%"></div></div>
   <div class="confrow"><span>Input Quality</span><b>70</b></div>
@@ -197,7 +201,7 @@ table.power td.num{color:var(--text-dim);}
 </div>
 <div class="bb-card">
   <div class="bb-matchup"><img class="logo bb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/sea.png" alt=""> SEA @ ARI <img class="logo bb-logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/ari.png" alt=""></div>
-  <div class="bb-pick"><span class="pick-val">OVER 41.5</span><span class="pick-type">O/U</span></div>
+  <div class="bb-pick"><span class="pick-val">OVER 40.5</span><span class="pick-type">O/U</span></div>
   <div class="bb-reason">Model total is 3.4 pts above the market total.</div>
   <div class="confbar"><div class="confbar-fill" style="width:72%"></div></div>
   <div class="confrow"><span>Input Quality</span><b>72</b></div>
@@ -251,19 +255,24 @@ table.power td.num{color:var(--text-dim);}
   <div class="scorediff">That is <b>BUF -6.5</b>. The line is <b>-5.5</b> — we are <b>1.0 pt toward BUF</b>.<br>Our total is <b>48.5</b> against a line of <b>54.5</b> — <b>6.2 under</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-6.5</td><td class="edgeval">1.0 pts → BUF</td></tr><tr><td>Total</td><td>48.5</td><td class="edgeval">6.0 pts → UNDER</td></tr></table>
   <div class="linemove">📈 Line movement: Spread: Opened -3.5 → Now -5.5 · Total: Opened 53.5 → Now 54.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span></div>
-  <div class="bar"><div class="bar-a" style="width:70.0%"></div><div class="bar-b" style="width:30.0%"></div></div>
-  <div class="barnum">BUF 70% / DET 30%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$46.1M traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:99.0%"></div><div class="bar-b" style="width:1.0%"></div></div>
+  <div class="kalside"><span class="kalteam">BUF</span><span class="kalpct">99%</span><span class="kalvol">$15.7M &middot; 34% of vol</span></div><div class="kalside"><span class="kalteam">DET</span><span class="kalpct">1%</span><span class="kalvol">$30.4M &middot; 66% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: BUF</span></div>
+  <div class="bar"><div class="bar-a" style="width:50.0%"></div><div class="bar-b" style="width:50.0%"></div></div>
+  <div class="barnum">BUF 50% / DET 50%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:73.0%"></div><div class="bar-b" style="width:27.0%"></div></div>
-  <div class="barnum">BUF 73% / DET 27%</div>
+  <div class="bar"><div class="bar-a" style="width:61.0%"></div><div class="bar-b" style="width:39.0%"></div></div>
+  <div class="barnum">BUF 61% / DET 39%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:69.0%"></div><div class="bar-d" style="width:31.0%"></div></div>
-  <div class="barnum">OVER 69% / UNDER 31%</div>
+  <div class="bar"><div class="bar-c" style="width:17.0%"></div><div class="bar-d" style="width:83.0%"></div></div>
+  <div class="barnum">OVER 17% / UNDER 83%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>88</b></div>
   <div class="confreason">Note: nothing unusual — every input is in normal shape for this game.</div><div class="confreason">Market agreement: 86% — reported, never ranked on.</div>
@@ -289,20 +298,25 @@ table.power td.num{color:var(--text-dim);}
   <div class="projscore"><span class="home">ATL 22</span><span class="dash"> — </span><span class="away">CAR 21</span></div>
   <div class="scorediff">That is <b>ATL -1.0</b>. The line is <b>+2.5</b> — we are <b>3.6 pts toward ATL</b>.<br>Our total is <b>43.0</b> against a line of <b>43.5</b> — <b>0.7 under</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-1.0</td><td class="edgeval">3.5 pts → ATL</td></tr><tr><td>Total</td><td>43.0</td><td class="edgeval">0.5 pts → UNDER</td></tr></table>
-  <div class="linemove">📈 Line movement: Spread: Opened -1.5 → Now -2.5 · Total: Opened 44.5 → Now 43.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="linemove">📈 Line movement: Spread: Opened -1.5 → Now +2.5 · Total: Opened 44.5 → Now 43.5</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$928K traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:42.6%"></div><div class="bar-b" style="width:57.4%"></div></div>
+  <div class="kalside"><span class="kalteam">ATL</span><span class="kalpct">43%</span><span class="kalvol">$361K &middot; 39% of vol</span></div><div class="kalside"><span class="kalteam">CAR</span><span class="kalpct">58%</span><span class="kalvol">$567K &middot; 61% of vol</span></div>
+</div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
-  <div class="bar"><div class="bar-a" style="width:85.0%"></div><div class="bar-b" style="width:15.0%"></div></div>
-  <div class="barnum">ATL 85% / CAR 15%</div>
+  <div class="bar"><div class="bar-a" style="width:31.0%"></div><div class="bar-b" style="width:69.0%"></div></div>
+  <div class="barnum">ATL 31% / CAR 69%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:79.0%"></div><div class="bar-b" style="width:21.0%"></div></div>
-  <div class="barnum">ATL 79% / CAR 21%</div>
+  <div class="bar"><div class="bar-a" style="width:35.0%"></div><div class="bar-b" style="width:65.0%"></div></div>
+  <div class="barnum">ATL 35% / CAR 65%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:72.0%"></div><div class="bar-d" style="width:28.0%"></div></div>
-  <div class="barnum">OVER 72% / UNDER 28%</div>
+  <div class="bar"><div class="bar-c" style="width:37.0%"></div><div class="bar-d" style="width:63.0%"></div></div>
+  <div class="barnum">OVER 37% / UNDER 63%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>68</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 49% — reported, never ranked on.</div>
@@ -328,20 +342,25 @@ table.power td.num{color:var(--text-dim);}
   <div class="projscore"><span class="home">BAL 28</span><span class="dash"> — </span><span class="away">NO 20</span></div>
   <div class="scorediff">That is <b>BAL -8.0</b>. The line is <b>-8.5</b> — we are <b>0.5 pt toward NO</b>.<br>Our total is <b>47.0</b> against a line of <b>45.5</b> — <b>1.5 over</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-8.0</td><td class="edgeval">0.5 pts → NO</td></tr><tr><td>Total</td><td>47.0</td><td class="edgeval">1.5 pts → OVER</td></tr></table>
-  <div class="linemove">📈 Line movement: Total: Opened 48.5 → Now 46.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="linemove">📈 Line movement: Total: Opened 48.5 → Now 45.5</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: NO</span></div>
-  <div class="bar"><div class="bar-a" style="width:59.0%"></div><div class="bar-b" style="width:41.0%"></div></div>
-  <div class="barnum">BAL 59% / NO 41%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$650K traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:78.0%"></div><div class="bar-b" style="width:22.0%"></div></div>
+  <div class="kalside"><span class="kalteam">BAL</span><span class="kalpct">78%</span><span class="kalvol">$351K &middot; 54% of vol</span></div><div class="kalside"><span class="kalteam">NO</span><span class="kalpct">22%</span><span class="kalvol">$299K &middot; 46% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:82.0%"></div><div class="bar-b" style="width:18.0%"></div></div>
+  <div class="barnum">BAL 82% / NO 18%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:50.0%"></div><div class="bar-b" style="width:50.0%"></div></div>
-  <div class="barnum">BAL 50% / NO 50%</div>
+  <div class="bar"><div class="bar-a" style="width:85.0%"></div><div class="bar-b" style="width:15.0%"></div></div>
+  <div class="barnum">BAL 85% / NO 15%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:76.0%"></div><div class="bar-d" style="width:24.0%"></div></div>
-  <div class="barnum">OVER 76% / UNDER 24%</div>
+  <div class="bar"><div class="bar-c" style="width:25.0%"></div><div class="bar-d" style="width:75.0%"></div></div>
+  <div class="barnum">OVER 25% / UNDER 75%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>64</b></div>
   <div class="confreason">Held down by: at least one of these teams has been graded more erratically than most.</div><div class="confreason">Market agreement: 93% — reported, never ranked on.</div>
@@ -367,20 +386,25 @@ table.power td.num{color:var(--text-dim);}
   <div class="projscore"><span class="home">CHI 25</span><span class="dash"> — </span><span class="away">MIN 20</span></div>
   <div class="scorediff">That is <b>CHI -5.5</b>. The line is <b>-4.5</b> — we are <b>1.0 pt toward CHI</b>.<br>Our total is <b>45.0</b> against a line of <b>47.5</b> — <b>2.3 under</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-5.5</td><td class="edgeval">1.0 pts → CHI</td></tr><tr><td>Total</td><td>45.0</td><td class="edgeval">2.5 pts → UNDER</td></tr></table>
-  <div class="linemove">📈 Line movement: Spread: Opened -5.5 → Now -4.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="linemove">📈 Line movement: Spread: Opened -5.5 → Now -4.5 · Total: Opened 48.5 → Now 47.5</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: MIN</span></div>
-  <div class="bar"><div class="bar-a" style="width:71.0%"></div><div class="bar-b" style="width:29.0%"></div></div>
-  <div class="barnum">CHI 71% / MIN 29%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$1.3M traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:66.0%"></div><div class="bar-b" style="width:34.0%"></div></div>
+  <div class="kalside"><span class="kalteam">CHI</span><span class="kalpct">66%</span><span class="kalvol">$733K &middot; 54% of vol</span></div><div class="kalside"><span class="kalteam">MIN</span><span class="kalpct">34%</span><span class="kalvol">$612K &middot; 46% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:64.0%"></div><div class="bar-b" style="width:36.0%"></div></div>
+  <div class="barnum">CHI 64% / MIN 36%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:57.0%"></div><div class="bar-b" style="width:43.0%"></div></div>
-  <div class="barnum">CHI 57% / MIN 43%</div>
+  <div class="bar"><div class="bar-a" style="width:62.0%"></div><div class="bar-b" style="width:38.0%"></div></div>
+  <div class="barnum">CHI 62% / MIN 38%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:82.0%"></div><div class="bar-d" style="width:18.0%"></div></div>
-  <div class="barnum">OVER 82% / UNDER 18%</div>
+  <div class="bar"><div class="bar-c" style="width:26.0%"></div><div class="bar-d" style="width:74.0%"></div></div>
+  <div class="barnum">OVER 26% / UNDER 74%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>62</b></div>
   <div class="confreason">Held down by: at least one of these teams has been graded more erratically than most.</div><div class="confreason">Market agreement: 86% — reported, never ranked on.</div>
@@ -398,28 +422,33 @@ table.power td.num{color:var(--text-dim);}
     <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/hou.png" alt="">HOU</span>
     <span class="team-away">CIN<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/cin.png" alt=""></span>
   </div>
-  <div class="dkline">DraftKings: <b>HOU -2.5</b> &nbsp;·&nbsp; O/U <b>45.5</b></div>
+  <div class="dkline">DraftKings: <b>HOU -3.0</b> &nbsp;·&nbsp; O/U <b>45.5</b></div>
   <div class="venue">NRG Stadium · Houston, TX</div>
   <div class="metaline">Forecast pending</div>
   <div class="metaline">Referee: Adrian Hill</div>
   <div class="section-label">PROJECTED SCORE</div>
   <div class="projscore"><span class="home">HOU 21</span><span class="dash"> — </span><span class="away">CIN 24</span></div>
-  <div class="scorediff">That is <b>HOU +3.5</b>. The line is <b>-2.5</b> — we are <b>5.8 pts toward CIN</b>.<br>Our total is <b>45.0</b> against a line of <b>45.5</b> — <b>0.3 under</b>.</div>
-  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+3.5</td><td class="edgeval">6.0 pts → CIN</td></tr><tr><td>Total</td><td>45.0</td><td class="edgeval">0.5 pts → UNDER</td></tr></table>
-  <div class="linemove">📈 Line movement: Spread: Opened -3.0 → Now -2.5 · Total: Opened 47.5 → Now 45.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="scorediff">That is <b>HOU +3.5</b>. The line is <b>-3.0</b> — we are <b>6.3 pts toward CIN</b>.<br>Our total is <b>45.0</b> against a line of <b>45.5</b> — <b>0.3 under</b>.</div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+3.5</td><td class="edgeval">6.5 pts → CIN</td></tr><tr><td>Total</td><td>45.0</td><td class="edgeval">0.5 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Total: Opened 47.5 → Now 45.5</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$1.0M traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:58.4%"></div><div class="bar-b" style="width:41.6%"></div></div>
+  <div class="kalside"><span class="kalteam">HOU</span><span class="kalpct">59%</span><span class="kalvol">$460K &middot; 45% of vol</span></div><div class="kalside"><span class="kalteam">CIN</span><span class="kalpct">42%</span><span class="kalvol">$568K &middot; 55% of vol</span></div>
+</div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: HOU</span></div>
-  <div class="bar"><div class="bar-a" style="width:59.0%"></div><div class="bar-b" style="width:41.0%"></div></div>
-  <div class="barnum">HOU 59% / CIN 41%</div>
+  <div class="bar"><div class="bar-a" style="width:43.0%"></div><div class="bar-b" style="width:57.0%"></div></div>
+  <div class="barnum">HOU 43% / CIN 57%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:76.0%"></div><div class="bar-b" style="width:24.0%"></div></div>
-  <div class="barnum">HOU 76% / CIN 24%</div>
+  <div class="bar"><div class="bar-a" style="width:53.0%"></div><div class="bar-b" style="width:47.0%"></div></div>
+  <div class="barnum">HOU 53% / CIN 47%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:66.0%"></div><div class="bar-d" style="width:34.0%"></div></div>
-  <div class="barnum">OVER 66% / UNDER 34%</div>
+  <div class="bar"><div class="bar-c" style="width:33.0%"></div><div class="bar-d" style="width:67.0%"></div></div>
+  <div class="barnum">OVER 33% / UNDER 67%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>70</b></div>
   <div class="confreason">Note: nothing unusual — every input is in normal shape for this game.</div><div class="confreason">Market agreement: 17% — reported, never ranked on.</div>
@@ -446,19 +475,24 @@ table.power td.num{color:var(--text-dim);}
   <div class="scorediff">That is <b>NE -4.0</b>. The line is <b>-5.5</b> — we are <b>1.4 pts toward PIT</b>.<br>Our total is <b>43.5</b> against a line of <b>41.5</b> — <b>2.1 over</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-4.0</td><td class="edgeval">1.5 pts → PIT</td></tr><tr><td>Total</td><td>43.5</td><td class="edgeval">2.0 pts → OVER</td></tr></table>
   <div class="linemove">📈 Line movement: Total: Opened 42.5 → Now 41.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: NE</span></div>
-  <div class="bar"><div class="bar-a" style="width:66.0%"></div><div class="bar-b" style="width:34.0%"></div></div>
-  <div class="barnum">NE 66% / PIT 34%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$1.2M traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:68.0%"></div><div class="bar-b" style="width:32.0%"></div></div>
+  <div class="kalside"><span class="kalteam">NE</span><span class="kalpct">68%</span><span class="kalvol">$383K &middot; 32% of vol</span></div><div class="kalside"><span class="kalteam">PIT</span><span class="kalpct">32%</span><span class="kalvol">$828K &middot; 68% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:42.0%"></div><div class="bar-b" style="width:58.0%"></div></div>
+  <div class="barnum">NE 42% / PIT 58%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:85.0%"></div><div class="bar-b" style="width:15.0%"></div></div>
-  <div class="barnum">NE 85% / PIT 15%</div>
+  <div class="bar"><div class="bar-a" style="width:44.0%"></div><div class="bar-b" style="width:56.0%"></div></div>
+  <div class="barnum">NE 44% / PIT 56%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:38.0%"></div><div class="bar-d" style="width:62.0%"></div></div>
-  <div class="barnum">OVER 38% / UNDER 62%</div>
+  <div class="bar"><div class="bar-c" style="width:37.0%"></div><div class="bar-d" style="width:63.0%"></div></div>
+  <div class="barnum">OVER 37% / UNDER 63%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>73</b></div>
   <div class="confreason">Note: nothing unusual — every input is in normal shape for this game.</div><div class="confreason">Market agreement: 79% — reported, never ranked on.</div>
@@ -484,20 +518,25 @@ table.power td.num{color:var(--text-dim);}
   <div class="projscore"><span class="home">NYJ 20</span><span class="dash"> — </span><span class="away">GB 22</span></div>
   <div class="scorediff">That is <b>NYJ +2.0</b>. The line is <b>+3.5</b> — we are <b>1.6 pts toward NYJ</b>.<br>Our total is <b>42.5</b> against a line of <b>44.5</b> — <b>2.2 under</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+2.0</td><td class="edgeval">1.5 pts → NYJ</td></tr><tr><td>Total</td><td>42.5</td><td class="edgeval">2.0 pts → UNDER</td></tr></table>
-  <div class="linemove">📈 Line movement: Spread: Opened -4.5 → Now -3.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="linemove">📈 Line movement: Spread: Opened -4.5 → Now +3.5</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: GB</span></div>
-  <div class="bar"><div class="bar-a" style="width:69.0%"></div><div class="bar-b" style="width:31.0%"></div></div>
-  <div class="barnum">NYJ 69% / GB 31%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$1.3M traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:38.6%"></div><div class="bar-b" style="width:61.4%"></div></div>
+  <div class="kalside"><span class="kalteam">NYJ</span><span class="kalpct">39%</span><span class="kalvol">$478K &middot; 37% of vol</span></div><div class="kalside"><span class="kalteam">GB</span><span class="kalpct">62%</span><span class="kalvol">$805K &middot; 63% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: NYJ</span></div>
+  <div class="bar"><div class="bar-a" style="width:25.0%"></div><div class="bar-b" style="width:75.0%"></div></div>
+  <div class="barnum">NYJ 25% / GB 75%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:52.0%"></div><div class="bar-b" style="width:48.0%"></div></div>
-  <div class="barnum">NYJ 52% / GB 48%</div>
+  <div class="bar"><div class="bar-a" style="width:53.0%"></div><div class="bar-b" style="width:47.0%"></div></div>
+  <div class="barnum">NYJ 53% / GB 47%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:62.0%"></div><div class="bar-d" style="width:38.0%"></div></div>
-  <div class="barnum">OVER 62% / UNDER 38%</div>
+  <div class="bar"><div class="bar-c" style="width:31.0%"></div><div class="bar-d" style="width:69.0%"></div></div>
+  <div class="barnum">OVER 31% / UNDER 69%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>66</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 78% — reported, never ranked on.</div>
@@ -515,28 +554,33 @@ table.power td.num{color:var(--text-dim);}
     <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/tb.png" alt="">TB</span>
     <span class="team-away">CLE<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/cle.png" alt=""></span>
   </div>
-  <div class="dkline">DraftKings: <b>TB -7.5</b> &nbsp;·&nbsp; O/U <b>41.5</b></div>
+  <div class="dkline">DraftKings: <b>TB -8.5</b> &nbsp;·&nbsp; O/U <b>41.5</b></div>
   <div class="venue">Raymond James Stadium · Tampa, FL</div>
   <div class="metaline">86°F, wind 5mph</div>
   <div class="metaline">Referee: Brad Rogers</div>
   <div class="section-label">PROJECTED SCORE</div>
   <div class="projscore"><span class="home">TB 25</span><span class="dash"> — </span><span class="away">CLE 17</span></div>
-  <div class="scorediff">That is <b>TB -8.5</b>. The line is <b>-7.5</b> — we are <b>1.1 pts toward TB</b>.<br>Our total is <b>42.0</b> against a line of <b>41.5</b> — <b>0.6 over</b>.</div>
-  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-8.5</td><td class="edgeval">1.0 pts → TB</td></tr><tr><td>Total</td><td>42.0</td><td class="edgeval">0.5 pts → OVER</td></tr></table>
+  <div class="scorediff">That is <b>TB -8.5</b>. The line is <b>-8.5</b> — we are <b>0.1 pt toward TB</b>.<br>Our total is <b>42.0</b> against a line of <b>41.5</b> — <b>0.6 over</b>.</div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-8.5</td><td class="edgeval">0.0 pts</td></tr><tr><td>Total</td><td>42.0</td><td class="edgeval">0.5 pts → OVER</td></tr></table>
   <div class="linemove">📈 Line movement: Total: Opened 40.5 → Now 41.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: TB</span></div>
-  <div class="bar"><div class="bar-a" style="width:84.0%"></div><div class="bar-b" style="width:16.0%"></div></div>
-  <div class="barnum">TB 84% / CLE 16%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$555K traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:78.2%"></div><div class="bar-b" style="width:21.8%"></div></div>
+  <div class="kalside"><span class="kalteam">TB</span><span class="kalpct">79%</span><span class="kalvol">$415K &middot; 75% of vol</span></div><div class="kalside"><span class="kalteam">CLE</span><span class="kalpct">22%</span><span class="kalvol">$141K &middot; 25% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:88.0%"></div><div class="bar-b" style="width:12.0%"></div></div>
+  <div class="barnum">TB 88% / CLE 12%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:94.0%"></div><div class="bar-b" style="width:6.0%"></div></div>
-  <div class="barnum">TB 94% / CLE 6%</div>
+  <div class="bar"><div class="bar-a" style="width:89.0%"></div><div class="bar-b" style="width:11.0%"></div></div>
+  <div class="barnum">TB 89% / CLE 11%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:65.0%"></div><div class="bar-d" style="width:35.0%"></div></div>
-  <div class="barnum">OVER 65% / UNDER 35%</div>
+  <div class="bar"><div class="bar-c" style="width:32.0%"></div><div class="bar-d" style="width:68.0%"></div></div>
+  <div class="barnum">OVER 32% / UNDER 68%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>79</b></div>
   <div class="confreason">Note: nothing unusual — every input is in normal shape for this game.</div><div class="confreason">Market agreement: 84% — reported, never ranked on.</div>
@@ -562,20 +606,25 @@ table.power td.num{color:var(--text-dim);}
   <div class="projscore"><span class="home">TEN 20</span><span class="dash"> — </span><span class="away">PHI 24</span></div>
   <div class="scorediff">That is <b>TEN +4.5</b>. The line is <b>+7.0</b> — we are <b>2.4 pts toward TEN</b>.<br>Our total is <b>44.0</b> against a line of <b>39.5</b> — <b>4.3 over</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+4.5</td><td class="edgeval">2.5 pts → TEN</td></tr><tr><td>Total</td><td>44.0</td><td class="edgeval">4.5 pts → OVER</td></tr></table>
-  <div class="linemove">📈 Line movement: Total: Opened 40.5 → Now 39.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="linemove">📈 Line movement: Spread: Opened -7.0 → Now +7.0 · Total: Opened 40.5 → Now 39.5</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$3.3M traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:25.0%"></div><div class="bar-b" style="width:75.0%"></div></div>
+  <div class="kalside"><span class="kalteam">TEN</span><span class="kalpct">25%</span><span class="kalvol">$1.0M &middot; 31% of vol</span></div><div class="kalside"><span class="kalteam">PHI</span><span class="kalpct">75%</span><span class="kalvol">$2.3M &middot; 69% of vol</span></div>
+</div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
-  <div class="bar"><div class="bar-a" style="width:94.0%"></div><div class="bar-b" style="width:6.0%"></div></div>
-  <div class="barnum">TEN 94% / PHI 6%</div>
+  <div class="bar"><div class="bar-a" style="width:6.0%"></div><div class="bar-b" style="width:94.0%"></div></div>
+  <div class="barnum">TEN 6% / PHI 94%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:99.0%"></div><div class="bar-b" style="width:1.0%"></div></div>
-  <div class="barnum">TEN 99% / PHI 1%</div>
+  <div class="bar"><div class="bar-a" style="width:6.0%"></div><div class="bar-b" style="width:94.0%"></div></div>
+  <div class="barnum">TEN 6% / PHI 94%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:58.0%"></div><div class="bar-d" style="width:42.0%"></div></div>
-  <div class="barnum">OVER 58% / UNDER 42%</div>
+  <div class="bar"><div class="bar-c" style="width:28.0%"></div><div class="bar-d" style="width:72.0%"></div></div>
+  <div class="barnum">OVER 28% / UNDER 72%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>81</b></div>
   <div class="confreason">Note: nothing unusual — every input is in normal shape for this game.</div><div class="confreason">Market agreement: 65% — reported, never ranked on.</div>
@@ -593,28 +642,33 @@ table.power td.num{color:var(--text-dim);}
     <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/den.png" alt="">DEN<span title="Loud venue — modest home-field bump">🔈</span></span>
     <span class="team-away">JAX<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/jax.png" alt=""></span>
   </div>
-  <div class="dkline">DraftKings: <b>DEN -3.0</b> &nbsp;·&nbsp; O/U <b>45.5</b></div>
+  <div class="dkline">DraftKings: <b>DEN -2.5</b> &nbsp;·&nbsp; O/U <b>45.5</b></div>
   <div class="venue">Empower Field at Mile High · Denver, CO</div>
   <div class="metaline">GUSTS 16 mph</div>
   <div class="metaline">Referee: John Hussey</div>
   <div class="section-label">PROJECTED SCORE</div>
   <div class="projscore"><span class="home">DEN 20</span><span class="dash"> — </span><span class="away">JAX 26</span></div>
-  <div class="scorediff">That is <b>DEN +6.0</b>. The line is <b>-3.0</b> — we are <b>8.9 pts toward JAX</b>.<br>Our total is <b>46.5</b> against a line of <b>45.5</b> — <b>1.2 over</b>.</div>
-  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+6.0</td><td class="edgeval">9.0 pts → JAX</td></tr><tr><td>Total</td><td>46.5</td><td class="edgeval">1.0 pts → OVER</td></tr></table>
+  <div class="scorediff">That is <b>DEN +6.0</b>. The line is <b>-2.5</b> — we are <b>8.4 pts toward JAX</b>.<br>Our total is <b>46.5</b> against a line of <b>45.5</b> — <b>1.2 over</b>.</div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+6.0</td><td class="edgeval">8.5 pts → JAX</td></tr><tr><td>Total</td><td>46.5</td><td class="edgeval">1.0 pts → OVER</td></tr></table>
   <div class="linemove">📈 Line movement: Total: Opened 44.5 → Now 45.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: DEN</span></div>
-  <div class="bar"><div class="bar-a" style="width:42.0%"></div><div class="bar-b" style="width:58.0%"></div></div>
-  <div class="barnum">DEN 42% / JAX 58%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$760K traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:58.4%"></div><div class="bar-b" style="width:41.6%"></div></div>
+  <div class="kalside"><span class="kalteam">DEN</span><span class="kalpct">59%</span><span class="kalvol">$208K &middot; 27% of vol</span></div><div class="kalside"><span class="kalteam">JAX</span><span class="kalpct">42%</span><span class="kalvol">$552K &middot; 73% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: JAX</span></div>
+  <div class="bar"><div class="bar-a" style="width:31.0%"></div><div class="bar-b" style="width:69.0%"></div></div>
+  <div class="barnum">DEN 31% / JAX 69%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:54.0%"></div><div class="bar-b" style="width:46.0%"></div></div>
-  <div class="barnum">DEN 54% / JAX 46%</div>
+  <div class="bar"><div class="bar-a" style="width:17.0%"></div><div class="bar-b" style="width:83.0%"></div></div>
+  <div class="barnum">DEN 17% / JAX 83%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:79.0%"></div><div class="bar-d" style="width:21.0%"></div></div>
-  <div class="barnum">OVER 79% / UNDER 21%</div>
+  <div class="bar"><div class="bar-c" style="width:25.0%"></div><div class="bar-d" style="width:75.0%"></div></div>
+  <div class="barnum">OVER 25% / UNDER 75%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>69</b></div>
   <div class="confreason">Held down by: at least one of these teams has been graded more erratically than most.</div><div class="confreason">Market agreement: 0% — reported, never ranked on.</div>
@@ -632,16 +686,34 @@ table.power td.num{color:var(--text-dim);}
     <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/lac.png" alt="">LAC</span>
     <span class="team-away">LV<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/lv.png" alt=""></span>
   </div>
-  <div class="dkline">DraftKings: <b>LAC -7.0</b> &nbsp;·&nbsp; O/U <b>43.5</b></div>
+  <div class="dkline">DraftKings: <b>LAC -6.5</b> &nbsp;·&nbsp; O/U <b>43.5</b></div>
   <div class="venue">SoFi Stadium · Inglewood, CA</div>
   <div class="metaline">Dome</div>
   <div class="metaline">Referee: Bill Vinovich</div>
   <div class="section-label">PROJECTED SCORE</div>
   <div class="projscore"><span class="home">LAC 19</span><span class="dash"> — </span><span class="away">LV 20</span></div>
-  <div class="scorediff">That is <b>LAC +0.5</b>. The line is <b>-7.0</b> — we are <b>7.4 pts toward LV</b>.<br>Our total is <b>39.0</b> against a line of <b>43.5</b> — <b>4.4 under</b>.</div>
-  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+0.5</td><td class="edgeval">7.5 pts → LV</td></tr><tr><td>Total</td><td>39.0</td><td class="edgeval">4.5 pts → UNDER</td></tr></table>
+  <div class="scorediff">That is <b>LAC +0.5</b>. The line is <b>-6.5</b> — we are <b>6.9 pts toward LV</b>.<br>Our total is <b>39.0</b> against a line of <b>43.5</b> — <b>4.4 under</b>.</div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+0.5</td><td class="edgeval">7.0 pts → LV</td></tr><tr><td>Total</td><td>39.0</td><td class="edgeval">4.5 pts → UNDER</td></tr></table>
   
-  
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$1.7M traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:73.0%"></div><div class="bar-b" style="width:27.0%"></div></div>
+  <div class="kalside"><span class="kalteam">LAC</span><span class="kalpct">73%</span><span class="kalvol">$194K &middot; 11% of vol</span></div><div class="kalside"><span class="kalteam">LV</span><span class="kalpct">27%</span><span class="kalvol">$1.5M &middot; 89% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: LAC</span></div>
+  <div class="bar"><div class="bar-a" style="width:47.0%"></div><div class="bar-b" style="width:53.0%"></div></div>
+  <div class="barnum">LAC 47% / LV 53%</div>
+  <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
+  <div class="bar"><div class="bar-a" style="width:59.0%"></div><div class="bar-b" style="width:41.0%"></div></div>
+  <div class="barnum">LAC 59% / LV 41%</div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>TOTAL — BETS</span></div>
+  <div class="bar"><div class="bar-c" style="width:28.0%"></div><div class="bar-d" style="width:72.0%"></div></div>
+  <div class="barnum">OVER 28% / UNDER 72%</div>
+</div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>71</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 0% — reported, never ranked on.</div>
   <details><summary>Game Report</summary>
@@ -658,28 +730,33 @@ table.power td.num{color:var(--text-dim);}
     <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/ari.png" alt="">ARI</span>
     <span class="team-away">SEA<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/sea.png" alt=""></span>
   </div>
-  <div class="dkline">DraftKings: <b>ARI +3.5</b> &nbsp;·&nbsp; O/U <b>41.5</b></div>
+  <div class="dkline">DraftKings: <b>ARI +3.5</b> &nbsp;·&nbsp; O/U <b>40.5</b></div>
   <div class="venue">State Farm Stadium · Glendale, AZ</div>
   <div class="metaline">99°F, wind 6mph</div>
   <div class="metaline">Referee: Alan Eck</div>
   <div class="section-label">PROJECTED SCORE</div>
   <div class="projscore"><span class="home">ARI 22</span><span class="dash"> — </span><span class="away">SEA 23</span></div>
-  <div class="scorediff">That is <b>ARI +1.0</b>. The line is <b>+3.5</b> — we are <b>2.3 pts toward ARI</b>.<br>Our total is <b>45.0</b> against a line of <b>41.5</b> — <b>3.4 over</b>.</div>
-  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+1.0</td><td class="edgeval">2.5 pts → ARI</td></tr><tr><td>Total</td><td>45.0</td><td class="edgeval">3.5 pts → OVER</td></tr></table>
-  <div class="linemove">📈 Line movement: Spread: Opened -4.5 → Now -3.5 · Total: Opened 41.5 → Now 40.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="scorediff">That is <b>ARI +1.0</b>. The line is <b>+3.5</b> — we are <b>2.3 pts toward ARI</b>.<br>Our total is <b>45.0</b> against a line of <b>40.5</b> — <b>4.4 over</b>.</div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>+1.0</td><td class="edgeval">2.5 pts → ARI</td></tr><tr><td>Total</td><td>45.0</td><td class="edgeval">4.5 pts → OVER</td></tr></table>
+  <div class="linemove">📈 Line movement: Spread: Opened -4.5 → Now +3.5 · Total: Opened 41.5 → Now 40.5</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$414K traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:34.7%"></div><div class="bar-b" style="width:65.3%"></div></div>
+  <div class="kalside"><span class="kalteam">ARI</span><span class="kalpct">35%</span><span class="kalvol">$154K &middot; 37% of vol</span></div><div class="kalside"><span class="kalteam">SEA</span><span class="kalpct">66%</span><span class="kalvol">$260K &middot; 63% of vol</span></div>
+</div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
-  <div class="bar"><div class="bar-a" style="width:75.0%"></div><div class="bar-b" style="width:25.0%"></div></div>
-  <div class="barnum">ARI 75% / SEA 25%</div>
+  <div class="bar"><div class="bar-a" style="width:37.0%"></div><div class="bar-b" style="width:63.0%"></div></div>
+  <div class="barnum">ARI 37% / SEA 63%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:72.0%"></div><div class="bar-b" style="width:28.0%"></div></div>
-  <div class="barnum">ARI 72% / SEA 28%</div>
+  <div class="bar"><div class="bar-a" style="width:36.0%"></div><div class="bar-b" style="width:64.0%"></div></div>
+  <div class="barnum">ARI 36% / SEA 64%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:63.0%"></div><div class="bar-d" style="width:37.0%"></div></div>
-  <div class="barnum">OVER 63% / UNDER 37%</div>
+  <div class="bar"><div class="bar-c" style="width:77.0%"></div><div class="bar-d" style="width:23.0%"></div></div>
+  <div class="barnum">OVER 77% / UNDER 23%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>72</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 67% — reported, never ranked on.</div>
@@ -706,19 +783,24 @@ table.power td.num{color:var(--text-dim);}
   <div class="scorediff">That is <b>DAL -6.0</b>. The line is <b>-3.5</b> — we are <b>2.6 pts toward DAL</b>.<br>Our total is <b>45.5</b> against a line of <b>50.5</b> — <b>5.0 under</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-6.0</td><td class="edgeval">2.5 pts → DAL</td></tr><tr><td>Total</td><td>45.5</td><td class="edgeval">5.0 pts → UNDER</td></tr></table>
   <div class="linemove">📈 Line movement: Spread: Opened -4.5 → Now -3.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: DAL</span></div>
-  <div class="bar"><div class="bar-a" style="width:50.0%"></div><div class="bar-b" style="width:50.0%"></div></div>
-  <div class="barnum">DAL 50% / WAS 50%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$602K traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:65.3%"></div><div class="bar-b" style="width:34.7%"></div></div>
+  <div class="kalside"><span class="kalteam">DAL</span><span class="kalpct">66%</span><span class="kalvol">$272K &middot; 45% of vol</span></div><div class="kalside"><span class="kalteam">WAS</span><span class="kalpct">35%</span><span class="kalvol">$331K &middot; 55% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: WAS</span></div>
+  <div class="bar"><div class="bar-a" style="width:44.0%"></div><div class="bar-b" style="width:56.0%"></div></div>
+  <div class="barnum">DAL 44% / WAS 56%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:58.0%"></div><div class="bar-b" style="width:42.0%"></div></div>
-  <div class="barnum">DAL 58% / WAS 42%</div>
+  <div class="bar"><div class="bar-a" style="width:29.0%"></div><div class="bar-b" style="width:71.0%"></div></div>
+  <div class="barnum">DAL 29% / WAS 71%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:56.0%"></div><div class="bar-d" style="width:44.0%"></div></div>
-  <div class="barnum">OVER 56% / UNDER 44%</div>
+  <div class="bar"><div class="bar-c" style="width:25.0%"></div><div class="bar-d" style="width:75.0%"></div></div>
+  <div class="barnum">OVER 25% / UNDER 75%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>72</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 62% — reported, never ranked on.</div>
@@ -745,19 +827,24 @@ table.power td.num{color:var(--text-dim);}
   <div class="scorediff">That is <b>SF -4.0</b>. The line is <b>-13.5</b> — we are <b>9.6 pts toward MIA</b>.<br>Our total is <b>46.0</b> against a line of <b>44.5</b> — <b>1.3 over</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-4.0</td><td class="edgeval">9.5 pts → MIA</td></tr><tr><td>Total</td><td>46.0</td><td class="edgeval">1.5 pts → OVER</td></tr></table>
   <div class="linemove">📈 Line movement: Spread: Opened -12.5 → Now -13.5 · Total: Opened 46.5 → Now 44.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$1.1M traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:89.1%"></div><div class="bar-b" style="width:10.9%"></div></div>
+  <div class="kalside"><span class="kalteam">SF</span><span class="kalpct">90%</span><span class="kalvol">$607K &middot; 55% of vol</span></div><div class="kalside"><span class="kalteam">MIA</span><span class="kalpct">11%</span><span class="kalvol">$491K &middot; 45% of vol</span></div>
+</div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
   <div class="bar"><div class="bar-a" style="width:86.0%"></div><div class="bar-b" style="width:14.0%"></div></div>
   <div class="barnum">SF 86% / MIA 14%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:80.0%"></div><div class="bar-b" style="width:20.0%"></div></div>
-  <div class="barnum">SF 80% / MIA 20%</div>
+  <div class="bar"><div class="bar-a" style="width:81.0%"></div><div class="bar-b" style="width:19.0%"></div></div>
+  <div class="barnum">SF 81% / MIA 19%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:55.0%"></div><div class="bar-d" style="width:45.0%"></div></div>
-  <div class="barnum">OVER 55% / UNDER 45%</div>
+  <div class="bar"><div class="bar-c" style="width:26.0%"></div><div class="bar-d" style="width:74.0%"></div></div>
+  <div class="barnum">OVER 26% / UNDER 74%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>74</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 0% — reported, never ranked on.</div>
@@ -775,28 +862,33 @@ table.power td.num{color:var(--text-dim);}
     <span class="team-home"><img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/kc.png" alt="">KC<span title="Elite crowd noise — bigger home-field bump">🔊</span></span>
     <span class="team-away">IND<img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/ind.png" alt=""></span>
   </div>
-  <div class="dkline">DraftKings: <b>KC -5.5</b> &nbsp;·&nbsp; O/U <b>46.5</b></div>
+  <div class="dkline">DraftKings: <b>KC -6.0</b> &nbsp;·&nbsp; O/U <b>46.5</b></div>
   <div class="venue">GEHA Field at Arrowhead · Kansas City, MO</div>
   <div class="metaline">GUSTS 16 mph</div>
   <div class="metaline">Referee: Craig Wrolstad</div>
   <div class="section-label">PROJECTED SCORE</div>
   <div class="projscore"><span class="home">KC 25</span><span class="dash"> — </span><span class="away">IND 19</span></div>
-  <div class="scorediff">That is <b>KC -6.0</b>. The line is <b>-5.5</b> — we are <b>0.5 pt toward KC</b>.<br>Our total is <b>44.0</b> against a line of <b>46.5</b> — <b>2.4 under</b>.</div>
-  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-6.0</td><td class="edgeval">0.5 pts → KC</td></tr><tr><td>Total</td><td>44.0</td><td class="edgeval">2.5 pts → UNDER</td></tr></table>
-  <div class="linemove">📈 Line movement: Total: Opened 47.5 → Now 46.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  <div class="scorediff">That is <b>KC -6.0</b>. The line is <b>-6.0</b> — we are <b>0.0 pt toward IND</b>.<br>Our total is <b>44.0</b> against a line of <b>46.5</b> — <b>2.4 under</b>.</div>
+  <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-6.0</td><td class="edgeval">0.0 pts</td></tr><tr><td>Total</td><td>44.0</td><td class="edgeval">2.5 pts → UNDER</td></tr></table>
+  <div class="linemove">📈 Line movement: Spread: Opened -6.5 → Now -6.0 · Total: Opened 47.5 → Now 46.5</div>
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span></div>
-  <div class="bar"><div class="bar-a" style="width:83.0%"></div><div class="bar-b" style="width:17.0%"></div></div>
-  <div class="barnum">KC 83% / IND 17%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$345K traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:71.3%"></div><div class="bar-b" style="width:28.7%"></div></div>
+  <div class="kalside"><span class="kalteam">KC</span><span class="kalpct">72%</span><span class="kalvol">$275K &middot; 80% of vol</span></div><div class="kalside"><span class="kalteam">IND</span><span class="kalpct">29%</span><span class="kalvol">$70K &middot; 20% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: IND</span></div>
+  <div class="bar"><div class="bar-a" style="width:78.0%"></div><div class="bar-b" style="width:22.0%"></div></div>
+  <div class="barnum">KC 78% / IND 22%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:85.0%"></div><div class="bar-b" style="width:15.0%"></div></div>
-  <div class="barnum">KC 85% / IND 15%</div>
+  <div class="bar"><div class="bar-a" style="width:70.0%"></div><div class="bar-b" style="width:30.0%"></div></div>
+  <div class="barnum">KC 70% / IND 30%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:68.0%"></div><div class="bar-d" style="width:32.0%"></div></div>
-  <div class="barnum">OVER 68% / UNDER 32%</div>
+  <div class="bar"><div class="bar-c" style="width:23.0%"></div><div class="bar-d" style="width:77.0%"></div></div>
+  <div class="barnum">OVER 23% / UNDER 77%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>67</b></div>
   <div class="confreason">Held down by: at least one of these teams has been graded more erratically than most.</div><div class="confreason">Market agreement: 93% — reported, never ranked on.</div>
@@ -822,20 +914,25 @@ table.power td.num{color:var(--text-dim);}
   <div class="projscore"><span class="home">LA 26</span><span class="dash"> — </span><span class="away">NYG 22</span></div>
   <div class="scorediff">That is <b>LA -4.5</b>. The line is <b>-7.0</b> — we are <b>2.7 pts toward NYG</b>.<br>Our total is <b>47.5</b> against a line of <b>47.5</b> — <b>0.1 under</b>.</div>
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr><tr><td>Spread</td><td>-4.5</td><td class="edgeval">2.5 pts → NYG</td></tr><tr><td>Total</td><td>47.5</td><td class="edgeval">0.0 pts</td></tr></table>
-  <div class="linemove">📈 Line movement: Total: Opened 47.5 → Now 48.5</div>
-  <div class="section-label">PUBLIC BETTING SPLITS</div>
+  
+  <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: LA</span></div>
-  <div class="bar"><div class="bar-a" style="width:34.0%"></div><div class="bar-b" style="width:66.0%"></div></div>
-  <div class="barnum">LA 34% / NYG 66%</div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$1.6M traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:73.3%"></div><div class="bar-b" style="width:26.7%"></div></div>
+  <div class="kalside"><span class="kalteam">LA</span><span class="kalpct">74%</span><span class="kalvol">$175K &middot; 11% of vol</span></div><div class="kalside"><span class="kalteam">NYG</span><span class="kalpct">27%</span><span class="kalvol">$1.4M &middot; 89% of vol</span></div>
+</div>
+<div class="splitrow">
+  <div class="splitlabel"><span>SPREAD — BETS</span></div>
+  <div class="bar"><div class="bar-a" style="width:35.0%"></div><div class="bar-b" style="width:65.0%"></div></div>
+  <div class="barnum">LA 35% / NYG 65%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:49.0%"></div><div class="bar-b" style="width:51.0%"></div></div>
-  <div class="barnum">LA 49% / NYG 51%</div>
+  <div class="bar"><div class="bar-a" style="width:36.0%"></div><div class="bar-b" style="width:64.0%"></div></div>
+  <div class="barnum">LA 36% / NYG 64%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:62.0%"></div><div class="bar-d" style="width:38.0%"></div></div>
-  <div class="barnum">OVER 62% / UNDER 38%</div>
+  <div class="bar"><div class="bar-c" style="width:47.0%"></div><div class="bar-d" style="width:53.0%"></div></div>
+  <div class="barnum">OVER 47% / UNDER 53%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>72</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 61% — reported, never ranked on.</div>
@@ -860,9 +957,14 @@ table.power td.num{color:var(--text-dim);}
     44-point anchor it replaced sat 1.6 points below the real average total every season and printed 42, 43 or
     44 on all sixteen games of a typical board. Edge is the model's number minus the market's —
     for spread it's points toward the team the model favors more than the market; for total it's points toward
-    Over or Under. Public betting splits show % of bets (ticket count) vs. % of handle (money) per side — when
-    handle leans one way notably more than bets do, that's the classic signature of sharp money, flagged at an
-    8-point gap. Input Quality (0-100) describes how settled a game's inputs are — how
+    Over or Under. Market &amp; public money reads top to bottom. The Kalshi line is that exchange's own winner
+    market: each team's price in cents reads straight off as an implied win probability, next to the money
+    traded on that side — in dollars (contracts are $1 each) and as a share of the game's volume. It is real
+    money taking a position, not a book's customer mix, so the two sides sum to a point or two over 100; that
+    gap is the bid/ask spread, shown as-is rather than flattened. Below it, the book splits show % of bets
+    (ticket count) vs. % of handle (money) per side — when handle leans one way notably more than bets do,
+    that's the classic signature of sharp money, flagged at an 8-point gap.
+    Kalshi cannot show that flag: an exchange has no ticket-vs-handle split to diverge. Input Quality (0-100) describes how settled a game's inputs are — how
     steady the two teams' weekly grades have been, whether either rating is stale off a bye, how much of the
     number is injury-priced, and whether the line, forecast and rest days actually arrived. Each card names the
     input holding it down. It is NOT a forecast of accuracy and must not be read as one: across 2,851 graded
