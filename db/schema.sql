@@ -141,12 +141,18 @@ CREATE TABLE IF NOT EXISTS projections (
     rest_adj REAL,
     rivalry_adj REAL,
     ref_adj REAL,
-    injury_adj REAL,          -- listed players priced at replacement level, in spread points
+    injury_adj REAL,          -- NET listed-player cost (away - home), in spread points
+    injury_gross REAL,        -- both teams' costs ADDED: what confidence reads, since the net cancels
     pre_shrink_spread REAL,   -- 100% model, before blending toward market
+    pre_shrink_total REAL,    -- 100% model, before blending toward market
     final_spread REAL,        -- shrunk toward closing/current market line
     final_total REAL,
     home_win_prob REAL,
-    confidence_score REAL,
+    pred_home_score INTEGER,  -- OUR projected final score, our total split by our margin
+    pred_away_score INTEGER,  -- no market blend on either leg (see projection/score_model.py)
+    confidence_score REAL,        -- 0-100 INPUT QUALITY, not a bet grade (projection/confidence.py)
+    confidence_parts_json TEXT,   -- the named 0-1 components that produced confidence_score
+    market_agreement REAL,        -- 0-1, 1.0 = our number sits on the line. Reported, never ranked on.
     generated_at TEXT
 );
 

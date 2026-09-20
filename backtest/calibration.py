@@ -1,9 +1,23 @@
-"""Calibration check (framework §6: "watch calibration, not just win rate").
-An 80%-confidence pick should hit ~80% of the time -- this buckets graded
-picks by confidence and checks the ACTUAL ATS win rate in each bucket. A
-model that's correctly uncertain is more useful than one that's confidently
-wrong; this is how you catch the difference instead of just eyeballing the
-overall record."""
+"""Confidence-vs-results check (framework §6: "watch calibration, not just win rate").
+
+Buckets graded picks by confidence_score and prints the ACTUAL ATS win rate in
+each bucket.
+
+READ THIS BEFORE READING THE TABLE. confidence_score is NOT a probability and
+this is not a calibration curve. An 80 does not mean "hits 80% of the time" and
+never did -- projection/confidence.py scores how complete and settled a game's
+INPUTS are, which is a different question from whether the pick wins. The
+relationship has been measured over 2,654 graded games and it is flat to
+slightly inverted: 52.5% ATS in the 40-50 bucket against 48.1% at 80+, with our
+spread MAE running 10.42 in the lowest bucket and 10.78 in the highest.
+
+So a non-monotonic table here is the EXPECTED result, not a defect to fix, and
+the right response is never to start ranking or gating bets by confidence --
+that was tried and it made the board worse (see the threshold note in
+projection/project.py). What this report is still good for is catching a
+REGRESSION: if confidence ever starts tracking win rate strongly in either
+direction, something has leaked the market or the result into the inputs.
+"""
 from __future__ import annotations
 
 import sys
@@ -33,10 +47,11 @@ def report(seasons: list[int]) -> None:
         n = wins + losses
         pct = f"{100 * wins / n:.1f}%" if n else "n/a"
         print(f"{lo:>3}-{hi:<8}{n:<6}{pct:<8}")
-    print("\nA well-calibrated model shows win% climbing roughly in step with the "
-          "confidence bucket. If it doesn't (flat, or non-monotonic), confidence "
-          "isn't tracking real predictive power yet -- treat the confidence number "
-          "as decorative, not actionable, until this improves.")
+    print("\nFlat or non-monotonic is the expected reading: confidence scores INPUT "
+          "QUALITY, not win probability, and it has been measured as slightly "
+          "INVERTED against ATS (52.5% at 40-50 vs 48.1% at 80+). Do not gate or "
+          "rank bets on it. A strong trend in either direction is the thing worth "
+          "investigating -- it would mean the result has leaked into the inputs.")
 
 
 if __name__ == "__main__":

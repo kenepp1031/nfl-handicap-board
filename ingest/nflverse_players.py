@@ -17,9 +17,37 @@ from ingest.nflverse_pbp import load_pbp_player_week_stats
 PLAYERS_URL = "https://github.com/nflverse/nflverse-data/releases/download/players/players.csv"
 PLAYERS_CACHE_HOURS = 24 * 7  # roster identity churns slowly; a week-old crosswalk is fine
 
-STATS_URL_FMT = "https://github.com/nflverse/nflverse-data/releases/download/player_stats/player_stats_{year}.csv"
+# nflverse renamed this release: `player_stats/player_stats_{year}.csv` stopped
+# being published after 2024 and became `stats_player/stats_player_week_{year}.csv`
+# -- the same rename grading/team_units.py already follows for team stats. The old
+# URL 404s for 2025+, which sent those seasons down the play-by-play fallback
+# below and left them with EPA and nothing else: no yardage, no touchdowns, no
+# target share, and a QB play count that double-counted every sack (see
+# _load_player_stats). The new file covers 2015-2026 with 150 columns and carries
+# defensive box scores in the same rows, so every season now comes from one source.
+STATS_URL_FMT = "https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_{year}.csv"
 SNAPS_URL_FMT = "https://github.com/nflverse/nflverse-data/releases/download/snap_counts/snap_counts_{year}.csv"
 SEASON_CACHE_HOURS = 12  # current season's weekly files update after games are played
+
+# Columns nflverse renamed, mapped back to the names the rest of this app reads,
+# so grading/player_grades.py and grading/qb_rating.py are untouched by the move.
+RENAMED_COLUMNS = {
+    "team": "recent_team",
+    "sacks_suffered": "sacks",
+    "sack_yards_lost": "sack_yards",
+    "passing_interceptions": "interceptions",
+}
+
+# The new release carries defensive box scores alongside offense. player_grades
+# already knows how to grade these (DEF_STAT_WEIGHTS) -- it just never saw them
+# outside the pbp fallback, so defenders in 2015-2024 only ever got the team-unit
+# proxy. Same eight counts, nflverse's names on the left.
+DEF_COLUMNS = {
+    "def_sacks": "sacks", "def_tackles_for_loss": "tfl", "def_qb_hits": "qb_hits",
+    "def_interceptions": "ints", "def_pass_defended": "pass_defensed",
+    "def_fumbles_forced": "forced_fumbles", "def_tackles_solo": "solo_tackles",
+    "def_tackle_assists": "assist_tackles",
+}
 
 
 def _load_crosswalk() -> dict[str, dict]:
@@ -41,8 +69,24 @@ def _load_crosswalk() -> dict[str, dict]:
 
 
 def _load_player_stats(year: int) -> list[dict]:
-    text = cached_fetch(f"player_stats_{year}.csv", STATS_URL_FMT.format(year=year), SEASON_CACHE_HOURS)
-    return list(csv.DictReader(io.StringIO(text)))
+    """Weekly player rows with the app's own column names.
+
+    `attempts` here is nflverse's official count, which EXCLUDES sacks. That
+    matters: player_grades._epa_per_play computes a QB's plays as
+    attempts + sacks + carries, so a feed whose `attempts` already contains
+    sacks inflates the denominator by the sack count and quietly flattens every
+    sack-prone quarterback toward league-average EPA per play. The pbp fallback
+    does exactly that (its attempts come from pass_attempt, which pbp sets on
+    sacks too), which is what 2025 and 2026 were being graded on."""
+    text = cached_fetch(f"stats_player_week_{year}.csv", STATS_URL_FMT.format(year=year), SEASON_CACHE_HOURS)
+    rows = []
+    for raw in csv.DictReader(io.StringIO(text)):
+        row = {RENAMED_COLUMNS.get(k, k): v for k, v in raw.items()}
+        stats = {dest: _num(row.get(src)) for src, dest in DEF_COLUMNS.items()}
+        if any(stats.values()):
+            row["def_stats"] = stats
+        rows.append(row)
+    return rows
 
 
 def _load_snap_counts(year: int) -> list[dict]:
@@ -57,12 +101,19 @@ def _pct(v):
         return 0.0
 
 
+def _num(v):
+    """Blank / 'NA' / missing all read as zero -- these are box-score counts."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return 0.0
+
+
 def ingest_season(year: int) -> tuple[int, int]:
     """Upserts players + player_game_stats for one season. Returns
-    (players_upserted, player_game_rows_upserted). player_stats and
+    (players_upserted, player_game_rows_upserted). The weekly stats and
     snap_counts are fetched independently -- nflverse doesn't always publish
-    them on the same schedule (confirmed: snap_counts_2025.csv already exists
-    while player_stats_2025.csv doesn't yet), so a missing one shouldn't throw
+    them on the same schedule, so a missing one shouldn't throw
     away the other. Without snap_counts there's no roster/snap data to ingest
     at all, so that's the one that determines whether this returns real rows;
     callers should fall back to grading.team_score.compute_from_team_units_season
@@ -72,8 +123,12 @@ def ingest_season(year: int) -> tuple[int, int]:
     try:
         stats_rows = _load_player_stats(year)
     except Exception as ex:
-        print(f"  player_stats unavailable for {year} ({ex}); deriving individual offense/defense "
-              f"grades from play-by-play instead")
+        # The fallback's QB `attempts` include sacks, which _epa_per_play then
+        # adds again -- grades taken from this path are not comparable with the
+        # rest of the database. It exists so a publishing delay doesn't blank a
+        # week, not as a second source of record.
+        print(f"  stats_player_week unavailable for {year} ({ex}); deriving individual offense/defense "
+              f"grades from play-by-play instead (sack-inflated QB play counts)")
         stats_rows = []
         by_gsis = {v["gsis_id"]: v for v in crosswalk.values() if v["gsis_id"]}
         try:

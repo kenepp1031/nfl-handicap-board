@@ -8,13 +8,17 @@ simply omitted rather than faked.
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from common import TEAM_NAMES, VENUES, NOISE_ELITE, NOISE_LOUD, logo_url
 from db.db import connect
-from projection.injury_adjust import team_injury_impact, MIN_POINTS_TO_NOTE
+from projection.injury_adjust import team_injury_impact, MIN_POINTS_TO_NOTE, MAX_TEAM_POINTS
+from projection.project import MARKET_BLEND_WEIGHT, MIN_SPREAD_EDGE, MAX_SPREAD_LEAN
+from projection.confidence import weakest_link_text, NOTHING_UNUSUAL
+from projection.score_model import split_score, TRAIN_SEASONS
 
 OUT_PATH = Path(__file__).parent / "dashboard.html"
 SHARP_DIVERGENCE_THRESHOLD = 8.0  # handle% - bets% gap that earns a "Sharp" flag
@@ -95,6 +99,8 @@ h1 .accent{background:linear-gradient(90deg,var(--gold),var(--gold2));-webkit-ba
 .metaline{font-size:12px;color:var(--text-dim);margin-bottom:2px;}
 .section-label{font-size:10.5px;color:var(--text-dim);letter-spacing:.06em;margin:12px 0 4px;font-weight:700;}
 .projscore{font-size:20px;font-weight:800;margin-bottom:8px;}
+.scorediff{font-size:12.5px;line-height:1.55;color:var(--text-dim);margin:-2px 0 10px;}
+.scorediff b{color:var(--gold2);font-weight:700;}
 .projscore .home{color:var(--teal);} .projscore .away{color:var(--away);} .projscore .dash{color:var(--text-dim);font-weight:400;}
 table.edge{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:6px;}
 table.edge th{text-align:left;font-weight:600;color:var(--text-dim);font-size:10.5px;padding:3px 4px;letter-spacing:.03em;}
@@ -111,6 +117,7 @@ table.edge td.edgeval{color:var(--gold2);font-weight:700;}
   border-top:1px solid #1c2338;}
 .confidence-row b{font-size:14px;}
 .leannote{font-size:10px;color:var(--text-dim);font-weight:400;}
+.confreason{font-size:10.5px;color:var(--text-dim);margin-top:3px;line-height:1.35;}
 details{margin-top:8px;}
 summary{cursor:pointer;font-size:12px;color:var(--gold2);font-weight:600;list-style:none;}
 summary::-webkit-details-marker{display:none;}
@@ -243,11 +250,21 @@ def measured_ats_record(con, season: int) -> str:
 
 
 def _pick_text(bet, g, home):
-    """'BUF -3.5' for a spread pick, 'OVER 44.5' for a total pick."""
+    """'BUF -3.5' for a spread pick, 'OVER 44.5' for a total pick.
+
+    The number here is the BOOK'S, because that is the only number a pick can
+    actually be placed against. It used to print final_spread/final_total -- the
+    80/20 model-market blend -- which is a line nobody offers and not our opinion
+    either. On the 2026 week-2 board every one of the fourteen picks printed a
+    number that did not exist: LV@LAC read "UNDER 42.5" against a real total of
+    43.5, with our own read at 39.1. Someone acting on the card would have taken
+    a materially different bet from the one shown. Our own number is on the card
+    already, beside the line, as the projected score and the edge row.
+    """
     if bet["bet_type"] == "spread":
-        line = round_half(team_line(g["final_spread"], bet["pick"], home))
+        line = round_half(team_line(g["closing_spread"], bet["pick"], home))
         return f"{bet['pick']} {line:+.1f}" if line is not None else bet["pick"]
-    total = round_half(g["final_total"])
+    total = round_half(g["closing_total"])
     return f"{bet['pick']} {total:.1f}" if total is not None else bet["pick"]
 
 
@@ -255,7 +272,9 @@ def render_week(season: int, week: int) -> Path:
     with connect() as con:
         games = con.execute(
             """SELECT g.*, p.final_spread, p.final_total, p.home_win_prob, p.confidence_score,
-                      p.pre_shrink_spread, p.base_score_diff, p.hfa_adj, p.rest_adj, p.weather_adj,
+                      p.pred_home_score, p.pred_away_score,
+                      p.confidence_parts_json, p.market_agreement,
+                      p.pre_shrink_spread, p.pre_shrink_total, p.base_score_diff, p.hfa_adj, p.rest_adj, p.weather_adj,
                       p.rivalry_adj, p.ref_adj, p.injury_adj,
                       w.temp_f, w.wind_mph, w.precip_type, w.alert_text,
                       o.referee_name, o.crew_home_ats_pct, o.crew_games
@@ -374,7 +393,7 @@ def render_week(season: int, week: int) -> Path:
   <div class="bb-pick"><span class="pick-val">{pick_txt}</span><span class="pick-type">{bet_type_label}</span></div>
   <div class="bb-reason">{b['reasoning_text'] or ''}</div>
   <div class="confbar"><div class="confbar-fill" style="width:{confbar_pct:.0f}%"></div></div>
-  <div class="confrow"><span>Data Strength</span><b>{b['confidence_score']:.0f}</b></div>
+  <div class="confrow"><span>Input Quality</span><b>{b['confidence_score']:.0f}</b></div>
 </div>""")
 
         # --- full card ---
@@ -397,10 +416,16 @@ def render_week(season: int, week: int) -> Path:
 
         # Final scores are whole points -- round to the nearest 1, not 0.5, so
         # "24.5 - 20.0" (which can't happen in a real football score) doesn't show up.
-        home_pts = away_pts = None
-        if g["final_total"] is not None and g["final_spread"] is not None:
-            home_pts = round((g["final_total"] + g["final_spread"]) / 2)
-            away_pts = round((g["final_total"] - g["final_spread"]) / 2)
+        # The projected score is OUR OWN number end to end: projection.score_model's
+        # per-game total split by the model's own un-blended margin. Neither leg is
+        # nudged toward the market -- deriving it from final_spread/final_total would
+        # print the market's score back at the reader with a 20% shave on it and call
+        # it a prediction. The two sides are rounded independently, so they can add to
+        # a point either side of the printed total; see score_model.split_score.
+        home_pts, away_pts = g["pred_home_score"], g["pred_away_score"]
+        model_spread, model_total = g["pre_shrink_spread"], g["pre_shrink_total"]
+        if home_pts is None and model_total is not None and model_spread is not None:
+            home_pts, away_pts = split_score(model_total, model_spread)
         proj_score_html = (
             f'<span class="home">{home} {home_pts}</span><span class="dash"> — </span>'
             f'<span class="away">{away} {away_pts}</span>'
@@ -409,20 +434,38 @@ def render_week(season: int, week: int) -> Path:
 
         market_spread = g["closing_spread"]
         market_total = g["closing_total"]
+
+        # The whole point of the card: our score, the line, and the gap between them.
+        diff_bits = []
+        if model_spread is not None and market_spread is not None:
+            d = model_spread - market_spread
+            side = home if d > 0 else away
+            diff_bits.append(
+                f'That is <b>{home} {round_half(team_line(model_spread, home, home)):+.1f}</b>. '
+                f'The line is <b>{round_half(team_line(market_spread, home, home)):+.1f}</b> — '
+                f'we are <b>{abs(d):.1f} {"pt" if abs(d) < 1.05 else "pts"} toward {side}</b>.')
+        if model_total is not None and market_total is not None:
+            d = model_total - market_total
+            diff_bits.append(
+                f'Our total is <b>{round_half(model_total):.1f}</b> against a line of '
+                f'<b>{round_half(market_total):.1f}</b> — <b>{abs(d):.1f} '
+                f'{"over" if d > 0 else "under"}</b>.')
+        scorediff_html = (f'<div class="scorediff">{"<br>".join(diff_bits)}</div>'
+                          if diff_bits else '')
         # The edge arrow points at the side the model likes MORE THAN THE MARKET
         # does, not at the outright favorite: market home -7 vs. model home -4 is
         # a 3-point edge toward the away side even though home is still favored.
         edge_side = None
-        if g["final_spread"] is not None and market_spread is not None:
-            edge_side = home if g["final_spread"] > market_spread else away
+        if model_spread is not None and market_spread is not None:
+            edge_side = home if model_spread > market_spread else away
         # Spread row is shown as the HOME team's own posted number (favorite
         # negative), same convention as a real board -- team_line() flips the
         # sign since final_spread/closing_spread are stored home-favored-positive.
         edge_rows = (
-            _edge_row("Spread", team_line(g["final_spread"], home, home), team_line(market_spread, home, home),
+            _edge_row("Spread", team_line(model_spread, home, home), team_line(market_spread, home, home),
                       better_side=edge_side)
-            + _edge_row("Total", g["final_total"], market_total, signed=False,
-                        better_side="OVER" if (g["final_total"] or 0) >= (market_total or 0) else "UNDER")
+            + _edge_row("Total", model_total, market_total, signed=False,
+                        better_side="OVER" if (model_total or 0) >= (market_total or 0) else "UNDER")
         )
 
         dk_spread_txt = f"{round_half(team_line(market_spread, home, home)):+.1f}" if market_spread is not None else "—"
@@ -508,8 +551,24 @@ def render_week(season: int, week: int) -> Path:
             impact = injury_by_team.get(team, {"points": 0.0, "players": []})
             named = [p for p in impact["players"] if p["points"] >= MIN_POINTS_TO_NOTE]
             if named:
-                lines = ", ".join(f"{p['position']} {p['name']} ({p['status']}) −{p['points']:.1f}" for p in named)
-                injury_bits.append(f"<b>{team} −{impact['points']:.1f}</b>: {lines}")
+                # QB carries a note naming the drop-off it was priced from, so the
+                # reader can see WHY one starter costs 1.4 points and another costs 4.
+                lines = ", ".join(
+                    f"{p['position']} {p['name']} ({p['status']}) −{p['points']:.1f}"
+                    + (f" <i>[{p['note']}]</i>" if p.get("note") else "")
+                    for p in named)
+                # Say when the team cap is binding. The per-player numbers are
+                # scaled down to sum to the cap, so without this note a reader sees
+                # a long list of shrunken figures with no explanation for why the
+                # starting left tackle is worth 0.86 instead of 1.0.
+                # Only worth saying when the overage is visible at the 1dp the
+                # lines are printed at; a team 0.03 over the cap would otherwise
+                # read "capped at 7; listed losses come to 7.0".
+                over = impact.get("raw_points", 0.0) - MAX_TEAM_POINTS
+                capnote = (f" <i>(capped at {MAX_TEAM_POINTS:.0f}; listed losses come to "
+                           f"{impact['raw_points']:.1f}, every line below scaled to fit)</i>"
+                           if impact.get("capped") and over >= 0.05 else "")
+                injury_bits.append(f"<b>{team} −{impact['points']:.1f}</b>{capnote}: {lines}")
         if abs(injury_val) > 0.05:
             beneficiary = home if injury_val > 0 else away
             report_items.append(f"Injuries move the number {abs(injury_val):.1f} pts toward {beneficiary}. "
@@ -520,11 +579,23 @@ def render_week(season: int, week: int) -> Path:
         if not report_items:
             report_items.append("No unusual factors on paper — this number is mostly the power-rating gap plus standard home field.")
 
+        # The user's standing instruction for this board: print what WE think will
+        # happen, with the book as a comparison rather than an ingredient. So the
+        # projected score is 100% ours on both legs, and this note says plainly how
+        # accurate that has actually been instead of hiding it behind a blend.
         pre_shrink_note = ""
-        if g["pre_shrink_spread"] is not None and market_spread is not None:
-            pre_line = round_half(team_line(g["pre_shrink_spread"], home, home))
-            pre_shrink_note = (f'<div class="premodel">Our own read before blending toward the market: '
-                                f'{home} {pre_line:+.1f} — final number blends that 70% with the market line.</div>')
+        if model_spread is not None:
+            posted = (f'{home} {round_half(team_line(g["final_spread"], home, home)):+.1f}'
+                      if g["final_spread"] is not None else None)
+            blend_bit = (f' The separate number that gets graded against the line is {posted}, '
+                         f'{(1 - MARKET_BLEND_WEIGHT) * 100:.0f}% our read and the rest the market.'
+                         if posted else '')
+            pre_shrink_note = (f'<div class="premodel">This score is entirely our own — our points '
+                               f'model for the total, our own margin, no part of the book in either. '
+                               f'Over 2,851 graded games it has missed each side of the score by 7.7 points '
+                               f'on average and called the winner 57% of the time, and it has hit an exact '
+                               f'final score 5 times. Read it as the middle of a wide range, not a '
+                               f'forecast of the final.{blend_bit}</div>')
 
         report_html = "".join(f"<li>{item}</li>" for item in report_items)
         game_report = f"""
@@ -535,6 +606,21 @@ def render_week(season: int, week: int) -> Path:
 </div>"""
 
         conf_val = f"{conf:.0f}" if conf is not None else "N/A"
+        # Say WHY the number landed where it did. A bare 47 next to a bare 83 tells a
+        # reader nothing; "held down by: ..." names the input that actually capped it.
+        conf_reason_html = ""
+        if g["confidence_parts_json"]:
+            reason = weakest_link_text(json.loads(g["confidence_parts_json"]))
+            if reason:
+                # "Held down by" only makes sense when something IS holding it down;
+                # weakest_link_text now returns a neutral note when nothing is below
+                # its normal level, and that must not be labelled as a weakness.
+                label = "Note" if reason == NOTHING_UNUSUAL else "Held down by"
+                conf_reason_html = f'<div class="confreason">{label}: {reason}.</div>'
+        if g["market_agreement"] is not None:
+            agree_pct = 100 * g["market_agreement"]
+            conf_reason_html += (f'<div class="confreason">Market agreement: {agree_pct:.0f}% '
+                                  f'— reported, never ranked on.</div>')
         weather_meta = f'<div class="metaline">{weather_line}</div>' if weather_line else ""
         speaker = ""
         if home in NOISE_ELITE:
@@ -556,10 +642,12 @@ def render_week(season: int, week: int) -> Path:
   <div class="metaline">{crew_line}</div>
   <div class="section-label">PROJECTED SCORE</div>
   <div class="projscore">{proj_score_html}</div>
+  {scorediff_html}
   <table class="edge"><tr><th></th><th>MODEL</th><th>EDGE</th></tr>{edge_rows}</table>
   {line_movement_html}
   {splits_block}
-  <div class="confidence-row"><span>Data Strength <span class="leannote">(how much data is behind the rating — not a bet grade)</span></span><b>{conf_val}</b></div>
+  <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>{conf_val}</b></div>
+  {conf_reason_html}
   <details><summary>Game Report</summary>{game_report}</details>
 </div>""")
 
@@ -655,17 +743,48 @@ def render_week(season: int, week: int) -> Path:
   <div class="grid">{''.join(game_cards)}</div>
 
   <div class="footer">
-    Projected score splits the model's total by its spread. Edge is the model's number minus the market's —
+    Projected score is ours alone — no part of the sportsbook number is in it. The total comes from a points
+    model that runs each team's offense rating against the other's defense rating, fit on the last
+    {TRAIN_SEASONS} completed seasons and read as of the week before kickoff; the margin is the model's own
+    un-blended spread; the two are split into a score. Measured over 2,851 graded games it misses each team's
+    score by 7.7 points on average, calls the winner 57.2% of the time, and has landed an exact final score 5
+    times — so read it as the centre of a wide range. Actual game totals vary with a standard deviation of 13.9
+    points and ours predicts inside a band of 3.6, because a least-squares model correctly shrinks toward the
+    average in proportion to how little it knows. Our total misses by 10.90 points on average against the
+    closing total's 10.45, so this is an honest read, not a better one — but it is unbiased, where the flat
+    44-point anchor it replaced sat 1.6 points below the real average total every season and printed 42, 43 or
+    44 on all sixteen games of a typical board. Edge is the model's number minus the market's —
     for spread it's points toward the team the model favors more than the market; for total it's points toward
     Over or Under. Public betting splits show % of bets (ticket count) vs. % of handle (money) per side — when
     handle leans one way notably more than bets do, that's the classic signature of sharp money, flagged at an
-    {SHARP_DIVERGENCE_THRESHOLD:.0f}-point gap. Data Strength (0-100) says how much data sits behind a game's
-    two team ratings, docked for how many situational adjustments had to carry the number — it is a data-quality
-    reading, not a bet grade. It used to also scale with how far the model sat from the market, and a 2016-2026
+    {SHARP_DIVERGENCE_THRESHOLD:.0f}-point gap. Input Quality (0-100) describes how settled a game's inputs are — how
+    steady the two teams' weekly grades have been, whether either rating is stale off a bye, how much of the
+    number is injury-priced, and whether the line, forecast and rest days actually arrived. Each card names the
+    input holding it down. It is NOT a forecast of accuracy and must not be read as one: across 2,851 graded
+    games our spread error is 10.42 points in the lowest bucket and 10.78 in the highest, and ATS runs 52.5%
+    at 40-50 against 48.1% at 80+. For that reason it no longer gates picks at all. It also used to fold in how
+    many games sit behind the two ratings, which rose from 0.47 in weeks 1-3 to 1.00 by week 15 while barely
+    varying inside any one week — that term was the entire score's season clock, so a fixed threshold on it
+    behaved as "do not bet before week 7"; with it removed the score sits at 75/76/76 across early, mid and late
+    season and separates games within a week more, not less. An earlier version was (games/16) x an adjustment
+    penalty, which could not reach its own ceiling before week 9 and gave every game in a week the same score —
+    all sixteen week-2 games read between 8.5 and 10.5. It also used to scale with how far the model sat from the market, and a 2016-2026
     backtest over 2,654 graded games showed that ranking was backwards: leans scoring 65+ went 47.2% ATS while
     everything below went 49.8%. The cause is mechanical — the model's spread is shrunk toward zero in proportion
-    to its own weakness (spread sd 4.65 vs the market's 6.09), so its biggest disagreements are mostly that
+    to its own weakness (spread sd 4.82 vs the market's 6.12), so its biggest disagreements are mostly that
     shrinkage rather than information, which is also why 74.6% of all leans historically landed on the underdog.
+    Market agreement is therefore shown beside the score but never ranked on. Picks are printed at the book's
+    own number, because that is the only number a bet can be placed against; our number is the projected score
+    and the edge beside it. A separate blend that is {(1 - MARKET_BLEND_WEIGHT) * 100:.0f}% our read and the
+    rest the market line is what the ATS record below is graded on — it picks the same side every time, since
+    blending cannot flip which way we disagree with the line, but it tracks accuracy honestly: every point of
+    model weight measurably raises spread error (MAE 9.80 at pure market, 10.13 at the 70% this board used to
+    run), because the model's incremental coefficient against the closing line is -0.06. A game only earns a posted
+    pick when our own read sits {MIN_SPREAD_EDGE:.0f}-{MAX_SPREAD_LEAN:.0f} points off the line; the old trigger
+    was a 0.05-point gap, which put a pick on all 16 games every week. That upper bound is deliberate: leans past {MAX_SPREAD_LEAN:.0f} points graded 48.2% while the
+    {MIN_SPREAD_EDGE:.0f}-{MAX_SPREAD_LEAN:.0f} band graded 49.6%, because the biggest disagreements are mostly
+    the model's own shrinkage rather than information. No rule tested here clears break-even — the band is there
+    to keep the board short and out of the worst tail, not because these picks win.
     The model has never beaten the closing line (49.1% ATS over 2,654 games against a 52.4% break-even), so every
     lean here is a read, not an edge. QB/RB/WR/TE grades are individual EPA-based; OL/DEF use a
     snap-weighted team-unit proxy since no public per-player data exists for those positions. Power rankings are
@@ -676,8 +795,8 @@ def render_week(season: int, week: int) -> Path:
     window. Injury scale (spread points for a full-time starter ruled Out): QB 5 · RB, WR, OT, DE/EDGE, CB 1 ·
     TE, OLB 0.75 · G, C, DT, LB, S 0.5. Doubtful counts 90% of that, Questionable 40%, and everything is scaled
     by the player's share of his unit's snaps over his team's last three games, with a 7-point cap per team.
-    The per-player numbers in each Game Report are those points, applied to the model number before the 70/30
-    market blend. See nfl_handicapping_framework.md for the full model design.
+    The per-player numbers in each Game Report are those points, applied to the model's own spread — which is
+    what the projected score is built from, so they move the score you see. See nfl_handicapping_framework.md for the full model design.
   </div>
 </div>
 </body></html>"""

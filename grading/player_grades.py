@@ -154,12 +154,14 @@ def grade_season(season: int) -> int:
         if v["def_epa_play"] is not None:
             def_pool.setdefault(week, []).append(v["def_epa_play"])
 
-    # -- DEF: individual grade from pbp box-count stats (ingest/nflverse_pbp.py's
-    # def_stats), per-snap-normalized and z-scored within (week, DL/LB/CB/S
-    # sub-group). Only available in seasons where the player_stats release is
-    # missing and the ingest fell back to play-by-play (see ingest_season) --
-    # in seasons where nflverse's own player_stats exists, defenders still get
-    # the team-unit proxy below since box counts aren't as reliable as real EPA.
+    # -- DEF: individual grade from box-count stats (stat_json's def_stats),
+    # per-snap-normalized and z-scored within (week, DL/LB/CB/S sub-group).
+    # These now arrive for every season from nflverse's stats_player_week
+    # release, which carries defensive counts in the same rows as offense.
+    # Before that release was wired up they only existed for seasons that fell
+    # back to play-by-play, so 2015-2024 defenders got the team-unit proxy and
+    # 2025-2026 defenders got this -- the same player was graded two different
+    # ways depending on which side of the rename his season fell on.
     def_parsed = []
     def_by_week_subgroup: dict[tuple[int, str], list[float]] = {}
     for r in rows:

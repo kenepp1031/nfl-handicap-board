@@ -13,6 +13,12 @@ SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 # that don't exist yet, so an existing DB gets these via ALTER TABLE.
 MIGRATIONS = [
     ("projections", "injury_adj", "REAL"),
+    ("projections", "confidence_parts_json", "TEXT"),
+    ("projections", "market_agreement", "REAL"),
+    ("projections", "pre_shrink_total", "REAL"),
+    ("projections", "injury_gross", "REAL"),
+    ("projections", "pred_home_score", "INTEGER"),
+    ("projections", "pred_away_score", "INTEGER"),
 ]
 
 
