@@ -84,6 +84,7 @@ table.edge td.edgeval{color:var(--gold2);font-weight:700;}
 .kalteam{font-weight:700;color:var(--text);min-width:38px;}
 .kalpct{font-weight:700;color:var(--gold2);min-width:34px;}
 .kalvol{margin-left:auto;text-align:right;}
+.stalenote{font-size:11px;color:var(--text-dim);font-style:italic;opacity:.75;margin-bottom:8px;}
 .confidence-row{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;padding-top:8px;
   border-top:1px solid #1c2338;}
 .confidence-row b{font-size:14px;}
@@ -964,7 +965,10 @@ table.power td.num{color:var(--text-dim);}
     gap is the bid/ask spread, shown as-is rather than flattened. Below it, the book splits show % of bets
     (ticket count) vs. % of handle (money) per side — when handle leans one way notably more than bets do,
     that's the classic signature of sharp money, flagged at an 8-point gap.
-    Kalshi cannot show that flag: an exchange has no ticket-vs-handle split to diverge. Input Quality (0-100) describes how settled a game's inputs are — how
+    Kalshi cannot show that flag: an exchange has no ticket-vs-handle split to diverge. Either line is dropped
+    for a dated "unavailable" note once its source has gone more than 24 hours without
+    answering, and comes back on its own the next time it does — these feeds fail by going quiet rather than
+    erroring, so a stale number left on screen would otherwise read as today's. Input Quality (0-100) describes how settled a game's inputs are — how
     steady the two teams' weekly grades have been, whether either rating is stale off a bye, how much of the
     number is injury-priced, and whether the line, forecast and rest days actually arrived. Each card names the
     input holding it down. It is NOT a forecast of accuracy and must not be read as one: across 2,851 graded
