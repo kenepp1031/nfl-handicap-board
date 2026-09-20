@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,6 +23,15 @@ from projection.score_model import split_score, TRAIN_SEASONS
 
 OUT_PATH = Path(__file__).parent / "dashboard.html"
 SHARP_DIVERGENCE_THRESHOLD = 8.0  # handle% - bets% gap that earns a "Sharp" flag
+
+# How old a market read may be before the board stops showing it. Every source
+# here is someone else's website, and the way those fail is not an error -- they
+# just stop answering, leaving the last good pull sitting in the table looking
+# current. That is exactly how the board spent a week showing DraftKings splits
+# that were days stale. Rendering is always preceded by a refresh, so a live
+# source lands at an age of minutes; anything approaching a day means the source
+# stopped answering, and the number is dropped rather than shown as today's.
+MARKET_STALE_HOURS = 24.0
 
 # A BEST_BET_THRESHOLD = 65 lean-score gate used to live here, on the assumption that a
 # higher lean score meant a better play. Graded over 2,654 games it did the opposite,
@@ -117,6 +127,7 @@ table.edge td.edgeval{color:var(--gold2);font-weight:700;}
 .kalteam{font-weight:700;color:var(--text);min-width:38px;}
 .kalpct{font-weight:700;color:var(--gold2);min-width:34px;}
 .kalvol{margin-left:auto;text-align:right;}
+.stalenote{font-size:11px;color:var(--text-dim);font-style:italic;opacity:.75;margin-bottom:8px;}
 .confidence-row{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;padding-top:8px;
   border-top:1px solid #1c2338;}
 .confidence-row b{font-size:14px;}
@@ -225,6 +236,43 @@ def _line_movement(values, signed=True):
     return f"Opened {fmt.format(values[0])} → Now {fmt.format(values[-1])}"
 
 
+def _age_hours(checked_at) -> float | None:
+    """Hours since a market row was last refreshed. None when the row carries no
+    usable timestamp, which is treated the same as stale -- a number we can't
+    date is a number we can't vouch for."""
+    if not checked_at:
+        return None
+    try:
+        seen = datetime.fromisoformat(checked_at)
+    except (TypeError, ValueError):
+        return None
+    if seen.tzinfo is None:
+        seen = seen.replace(tzinfo=timezone.utc)
+    return (datetime.now(timezone.utc) - seen).total_seconds() / 3600
+
+
+def _stale_note(rows, source: str) -> str:
+    """A dim one-liner standing in for a market block we dropped. Saying the
+    source went quiet, and when it was last good, is the difference between
+    "nothing to show" and "the board is broken" -- silently rendering nothing
+    would leave no way to tell those apart."""
+    ages = [_age_hours(r["checked_at"]) for r in rows if r]
+    known = [a for a in ages if a is not None]
+    if not known:
+        return f'<div class="stalenote">{source} not available</div>'
+    age = min(known)
+    when = f"{age / 24:.0f}d" if age >= 48 else f"{age:.0f}h"
+    return f'<div class="stalenote">{source} unavailable — last seen {when} ago</div>'
+
+
+def _is_fresh(*rows) -> bool:
+    """True only when every row is present and refreshed inside the window."""
+    if not all(rows):
+        return False
+    ages = [_age_hours(r["checked_at"]) for r in rows]
+    return all(a is not None and a <= MARKET_STALE_HOURS for a in ages)
+
+
 def _split_bar(pct_a, pct_b, cls_a, cls_b):
     total = (pct_a or 0) + (pct_b or 0)
     if total <= 0:
@@ -254,6 +302,8 @@ def _kalshi_block(kal: dict, home: str, away: str) -> str:
     kh, ka = kal.get("home"), kal.get("away")
     if not kh or not ka or kh["price"] is None or ka["price"] is None:
         return ""
+    if not _is_fresh(kh, ka):
+        return _stale_note([kh, ka], "Kalshi")
     hv, av = kh["volume"] or 0, ka["volume"] or 0
     traded = hv + av
     rows = ""
@@ -535,7 +585,15 @@ def render_week(season: int, week: int) -> Path:
         splits = splits_by_game.get(g["game_id"], {})
         split_html = _kalshi_block(kalshi_by_game.get(g["game_id"], {}), home, away)
         sh, sa = splits.get(("spread", "home")), splits.get(("spread", "away"))
-        if sh and sa:
+        to, tu = splits.get(("total", "over")), splits.get(("total", "under"))
+        # The book splits are a scrape of someone else's page, and the last one
+        # died by going quiet rather than erroring. Show them only while they are
+        # actually current; a stale pull is dropped for a dated note, and the
+        # Sharp flag goes with it, since it is read off these same two numbers.
+        book_fresh = _is_fresh(sh, sa) or _is_fresh(to, tu)
+        if (sh or sa or to or tu) and not book_fresh:
+            split_html += _stale_note([sh, sa, to, tu], "DraftKings splits")
+        if sh and sa and _is_fresh(sh, sa):
             div_h = (sh["handle_pct"] or 0) - (sh["bets_pct"] or 0)
             div_a = (sa["handle_pct"] or 0) - (sa["bets_pct"] or 0)
             sharp_side = None
@@ -551,8 +609,7 @@ def render_week(season: int, week: int) -> Path:
   {_split_bar(sh['handle_pct'], sa['handle_pct'], 'a', 'b')}
   <div class="barnum">{home} {sh['handle_pct']:.0f}% / {away} {sa['handle_pct']:.0f}%</div>
 </div>"""
-        to, tu = splits.get(("total", "over")), splits.get(("total", "under"))
-        if to and tu:
+        if to and tu and _is_fresh(to, tu):
             split_html += f"""
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
@@ -811,7 +868,10 @@ def render_week(season: int, week: int) -> Path:
     gap is the bid/ask spread, shown as-is rather than flattened. Below it, the book splits show % of bets
     (ticket count) vs. % of handle (money) per side — when handle leans one way notably more than bets do,
     that's the classic signature of sharp money, flagged at an {SHARP_DIVERGENCE_THRESHOLD:.0f}-point gap.
-    Kalshi cannot show that flag: an exchange has no ticket-vs-handle split to diverge. Input Quality (0-100) describes how settled a game's inputs are — how
+    Kalshi cannot show that flag: an exchange has no ticket-vs-handle split to diverge. Either line is dropped
+    for a dated "unavailable" note once its source has gone more than {MARKET_STALE_HOURS:.0f} hours without
+    answering, and comes back on its own the next time it does — these feeds fail by going quiet rather than
+    erroring, so a stale number left on screen would otherwise read as today's. Input Quality (0-100) describes how settled a game's inputs are — how
     steady the two teams' weekly grades have been, whether either rating is stale off a bye, how much of the
     number is injury-priced, and whether the line, forecast and rest days actually arrived. Each card names the
     input holding it down. It is NOT a forecast of accuracy and must not be read as one: across 2,851 graded
