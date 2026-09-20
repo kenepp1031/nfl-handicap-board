@@ -1,23 +1,32 @@
-"""Public betting splits + live lines (framework §3.11), scraped from
-DraftKings Network's betting-splits page. Market-sentiment input only --
-never fed into grading, stored raw so the divergence threshold stays
-adjustable without a backfill. Also updates games.closing_spread/total for
-the current week (nflverse's own line only lands after the game is over), and
-logs every snapshot to line_history so the dashboard can show line movement.
+"""Public betting splits + live lines (framework §3.11), read from Action
+Network's free NFL public-betting page. Market-sentiment input only -- never
+fed into grading, stored raw so the divergence threshold stays adjustable
+without a backfill. Also updates games.closing_spread/total for the current
+week (nflverse's own line only lands after the game is over), and logs every
+snapshot to line_history so the dashboard can show line movement.
 
-Page structure (confirmed against a live fetch -- this is what actually
-breaks when DK redesigns the page, not the URL): each game is one
-`<div class="tb-se ...">` block. Its title has two `<img src='.../teams/nfl/
-{CODE}.png'>` tags around "AWAY_CODE Mascot @ HOME_CODE Mascot". Below that
-are three market blocks (Moneyline, Spread, Total) in a fixed order, each
-with two rows (home row first, away row second for Moneyline/Spread; Over
-then Under for Total) giving "<label> <a>odds</a> <handle%> <bets%>" -- Handle
-comes before Bets in the DOM, matching the "% Handle / % Bets" column headers.
-The page also paginates via &tb_page=N; there were 2 pages for a normal NFL
-week when this was last checked, so a few pages are fetched defensively.
+Source note (2026-09-20): this used to scrape DraftKings Network's own
+betting-splits page. That page now renders its table empty -- DK's widget
+gets a 403 from DK's own backend and ships a hidden "Unable to fetch data
+from server. 403" in place of the rows -- so the scrape silently froze and
+the dashboard kept showing splits from the last good pull. Action Network
+publishes the same numbers per book, DraftKings included, so the figures
+stay like-for-like; we just read them from a source that still answers.
+
+Page structure (this is what breaks when Action Network redesigns, not the
+URL): a Next.js page with one `<script id="__NEXT_DATA__">` JSON blob.
+props.pageProps.scoreboardResponse.games is the current week's games -- each
+has `teams` (id/abbr), home_team_id/away_team_id, season, week, and `markets`
+keyed by Action Network book id. markets[book].event.spread is two entries
+(side "home"/"away") and .total is two ("over"/"under"), each carrying
+`value` (the posted number), `odds`, and bet_info.tickets.percent /
+bet_info.money.percent -- our bets_pct and handle_pct. The page only ever
+carries the current week, so refresh_week checks the page's own week before
+writing anything.
 """
 from __future__ import annotations
 
+import json
 import re
 import sys
 from datetime import datetime, timezone
@@ -27,101 +36,91 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from common import fetch_text
 from db.db import connect
 
-DK_SPLITS_URL = "https://dknetwork.draftkings.com/draftkings-sportsbook-betting-splits/?tb_eg=NFL&tb_edate=n7days&itm_content=NFL"
-MAX_PAGES = 4
+AN_SPLITS_URL = "https://www.actionnetwork.com/nfl/public-betting"
 
-# DK's own team-logo codes differ from nflverse's in the same two spots ESPN's
-# do -- Rams and Washington -- assume the same mapping until proven otherwise.
-DK_CODE_TO_ABBR = {"LAR": "LA", "WSH": "WAS"}
+# Action Network book ids. DraftKings first so the dashboard keeps showing the
+# book it always did; Consensus is the fallback for a game DK hasn't posted
+# (in practice the two run within a point or two of each other).
+BOOK_PREFERENCE = ("68", "15")
 
-GAME_BLOCK_RE = re.compile(r'<div class="tb-se border-b.*?(?=<div class="tb-se border-b|\Z)', re.S)
-TITLE_RE = re.compile(r"teams/nfl/([A-Z]+)\.png'.*?@\s*<img[^>]*teams/nfl/([A-Z]+)\.png", re.S)
-MARKET_HEAD_RE = re.compile(r'<div class="flex-1">(Moneyline|Spread|Total)</div>')
-ROW_RE = re.compile(
-    r'tb-slipline flex-1 font-medium">([^<]+)</div>.*?>\s*([+−-]?\d+)\s*</a>'
-    r'.*?flex-1">(\d+)%.*?flex-1">(\d+)%',
-    re.S,
-)
+NEXT_DATA_RE = re.compile(r'id="__NEXT_DATA__"[^>]*>(.*?)</script>', re.S)
+
+# Action Network's abbreviations differ from nflverse's in exactly one spot.
+AN_CODE_TO_ABBR = {"JAC": "JAX"}
 
 
-def _dk_abbr(code: str) -> str:
-    return DK_CODE_TO_ABBR.get(code, code)
+def _abbr(code: str) -> str:
+    return AN_CODE_TO_ABBR.get(code, code)
 
 
-def _parse_market_blocks(block_text: str) -> dict[str, list[tuple[str, str, int, int]]]:
-    """Splits one game block by its market headers, returns
-    {market_name: [(label, odds, handle_pct, bets_pct), ...]} with up to 2 rows per market."""
-    heads = list(MARKET_HEAD_RE.finditer(block_text))
-    markets: dict[str, list] = {}
-    for i, m in enumerate(heads):
-        name = m.group(1)
-        start = m.end()
-        end = heads[i + 1].start() if i + 1 < len(heads) else len(block_text)
-        rows = ROW_RE.findall(block_text[start:end])
-        markets[name] = [(label, odds, int(handle), int(bets)) for label, odds, handle, bets in rows]
-    return markets
+def _pick_book(markets: dict) -> dict:
+    """First preferred book that actually carries splits for this game, as
+    {'spread': [...], 'total': [...]}. Empty dict if none of them do."""
+    for book_id in BOOK_PREFERENCE:
+        event = (markets.get(book_id) or {}).get("event") or {}
+        rows = (event.get("spread") or []) + (event.get("total") or [])
+        if any(r.get("bet_info") for r in rows):
+            return event
+    return {}
+
+
+def _sides(rows) -> dict[str, dict]:
+    """{side: row} for the rows that carry both a posted number and splits."""
+    out = {}
+    for r in rows or []:
+        if r.get("bet_info") and r.get("value") is not None:
+            out[r.get("side")] = r
+    return out
+
+
+def _pcts(row: dict) -> tuple[int, int]:
+    """(bets_pct, handle_pct) -- tickets is the count, money is the handle."""
+    info = row["bet_info"]
+    return int(info["tickets"]["percent"]), int(info["money"]["percent"])
 
 
 def fetch_games() -> list[dict]:
-    """Returns a list of parsed game dicts: {home_abbr, away_abbr, home_spread,
-    total, home_bets_pct, home_handle_pct, away_bets_pct, away_handle_pct,
-    over_bets_pct, over_handle_pct, under_bets_pct, under_handle_pct}. Any
-    field it couldn't parse for a game is left out of that game's dict rather
-    than guessed."""
-    seen_titles = set()
+    """Returns a list of parsed game dicts: {season, week, home_abbr, away_abbr,
+    home_spread, total, home_bets_pct, home_handle_pct, away_bets_pct,
+    away_handle_pct, over_bets_pct, over_handle_pct, under_bets_pct,
+    under_handle_pct}. Any field it couldn't parse for a game is left out of
+    that game's dict rather than guessed."""
+    raw = fetch_text(AN_SPLITS_URL, timeout=40)
+    blob = NEXT_DATA_RE.search(raw)
+    if not blob:
+        return []
+    page = json.loads(blob.group(1))
+    scoreboard = page["props"]["pageProps"]["scoreboardResponse"]["games"]
+
     games = []
-    for page in range(1, MAX_PAGES + 1):
-        url = DK_SPLITS_URL + f"&tb_page={page}"
-        try:
-            raw = fetch_text(url, timeout=30)
-        except Exception:
-            break
-        blocks = GAME_BLOCK_RE.findall(raw)
-        if not blocks:
-            break
-        new_this_page = 0
-        for block in blocks:
-            title = TITLE_RE.search(block)
-            if not title:
-                continue
-            away_abbr, home_abbr = _dk_abbr(title.group(1)), _dk_abbr(title.group(2))
-            key = (away_abbr, home_abbr)
-            if key in seen_titles:
-                continue
-            seen_titles.add(key)
-            new_this_page += 1
-            markets = _parse_market_blocks(block)
-            game = {"home_abbr": home_abbr, "away_abbr": away_abbr}
+    for g in scoreboard:
+        by_id = {t["id"]: _abbr(t["abbr"]) for t in g.get("teams") or []}
+        home, away = by_id.get(g.get("home_team_id")), by_id.get(g.get("away_team_id"))
+        if not home or not away:
+            continue
+        game = {
+            "season": g.get("season"),
+            "week": g.get("week"),
+            "home_abbr": home,
+            "away_abbr": away,
+        }
+        event = _pick_book(g.get("markets") or {})
 
-            spread_rows = markets.get("Spread", [])
-            if len(spread_rows) == 2:
-                home_label, _odds, home_handle, home_bets = spread_rows[0]
-                _away_label, _odds2, away_handle, away_bets = spread_rows[1]
-                num = re.search(r"([+−-]?\d+\.?\d*)\s*$", home_label)
-                if num:
-                    # Label is the HOME team's own posted number (favorite negative);
-                    # our storage convention is positive = home favored, so flip sign.
-                    game["home_spread"] = -float(num.group(1).replace("−", "-"))
-                    game["home_bets_pct"] = home_bets
-                    game["home_handle_pct"] = home_handle
-                    game["away_bets_pct"] = away_bets
-                    game["away_handle_pct"] = away_handle
+        spread = _sides(event.get("spread"))
+        if "home" in spread and "away" in spread:
+            # `value` is each side's own posted number (favorite negative);
+            # our storage convention is positive = home favored, so flip sign.
+            game["home_spread"] = -float(spread["home"]["value"])
+            game["home_bets_pct"], game["home_handle_pct"] = _pcts(spread["home"])
+            game["away_bets_pct"], game["away_handle_pct"] = _pcts(spread["away"])
 
-            total_rows = markets.get("Total", [])
-            if len(total_rows) == 2:
-                over_label, _odds, over_handle, over_bets = total_rows[0]
-                _under_label, _odds2, under_handle, under_bets = total_rows[1]
-                num = re.search(r"(\d+\.?\d*)", over_label)
-                if num:
-                    game["total"] = float(num.group(1))
-                    game["over_bets_pct"] = over_bets
-                    game["over_handle_pct"] = over_handle
-                    game["under_bets_pct"] = under_bets
-                    game["under_handle_pct"] = under_handle
+        total = _sides(event.get("total"))
+        if "over" in total and "under" in total:
+            game["total"] = float(total["over"]["value"])
+            game["over_bets_pct"], game["over_handle_pct"] = _pcts(total["over"])
+            game["under_bets_pct"], game["under_handle_pct"] = _pcts(total["under"])
 
-            games.append(game)
-        if new_this_page == 0:
-            break
+        games.append(game)
     return games
 
 
@@ -130,7 +129,16 @@ def refresh_week(season: int, week: int) -> int:
         parsed_games = fetch_games()
     except Exception:
         return 0
-    by_matchup = {(g["away_abbr"], g["home_abbr"]): g for g in parsed_games}
+    # The page only ever carries the current week. Writing its numbers onto a
+    # different week would silently mislabel them, so drop anything that isn't
+    # the week we were asked for.
+    by_matchup = {
+        (g["away_abbr"], g["home_abbr"]): g
+        for g in parsed_games
+        if g.get("season") == season and g.get("week") == week
+    }
+    if not by_matchup:
+        return 0
     checked = datetime.now(timezone.utc).isoformat(timespec="minutes")
     updated = 0
     with connect() as con:
@@ -140,7 +148,7 @@ def refresh_week(season: int, week: int) -> int:
         ).fetchall()
         for g in games:
             values = by_matchup.get((g["away_abbr"], g["home_abbr"]))
-            if not values or "home_spread" not in values and "total" not in values:
+            if not values or ("home_spread" not in values and "total" not in values):
                 continue
             spread = values.get("home_spread")
             total = values.get("total")
@@ -149,7 +157,7 @@ def refresh_week(season: int, week: int) -> int:
                    ON CONFLICT(game_id, checked_at) DO UPDATE SET spread=excluded.spread, total=excluded.total""",
                 (g["game_id"], checked, spread, total),
             )
-            # Only let the live scrape move games.closing_spread/total while the game
+            # Only let the live pull move games.closing_spread/total while the game
             # hasn't been played -- once final, nflverse's own historical closing line
             # (ingest/nflverse_games.py) is authoritative and shouldn't be clobbered.
             if g["home_score"] is None and (spread is not None or total is not None):
@@ -192,4 +200,4 @@ if __name__ == "__main__":
     from db.db import init_db
     init_db()
     season, week = int(sys.argv[1]), int(sys.argv[2])
-    print(f"Updated DK lines/splits for {refresh_week(season, week)} games")
+    print(f"Updated lines/splits for {refresh_week(season, week)} games")

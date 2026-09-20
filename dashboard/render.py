@@ -113,6 +113,10 @@ table.edge td.edgeval{color:var(--gold2);font-weight:700;}
 .bar-a{background:var(--teal);} .bar-b{background:var(--away);}
 .bar-c{background:var(--gold2);} .bar-d{background:var(--blue);}
 .barnum{font-size:11px;color:var(--text-dim);text-align:right;}
+.kalside{display:flex;align-items:baseline;gap:8px;font-size:11px;color:var(--text-dim);margin-bottom:2px;}
+.kalteam{font-weight:700;color:var(--text);min-width:38px;}
+.kalpct{font-weight:700;color:var(--gold2);min-width:34px;}
+.kalvol{margin-left:auto;text-align:right;}
 .confidence-row{display:flex;justify-content:space-between;font-size:13px;margin-top:10px;padding-top:8px;
   border-top:1px solid #1c2338;}
 .confidence-row b{font-size:14px;}
@@ -229,6 +233,43 @@ def _split_bar(pct_a, pct_b, cls_a, cls_b):
     return f'<div class="bar"><div class="bar-{cls_a}" style="width:{wa:.1f}%"></div><div class="bar-{cls_b}" style="width:{100-wa:.1f}%"></div></div>'
 
 
+def _money(value) -> str:
+    """Kalshi contracts are $1 notional each, so a contract count is already a
+    dollar figure. Rounded hard -- the point is the order of magnitude."""
+    if not value:
+        return "--"
+    if value >= 1_000_000:
+        return f"${value / 1_000_000:.1f}M"
+    if value >= 1_000:
+        return f"${value / 1_000:.0f}K"
+    return f"${value:.0f}"
+
+
+def _kalshi_block(kal: dict, home: str, away: str) -> str:
+    """Kalshi's winner market: each team's price (which reads directly as an
+    implied win probability) and the money traded on it, both in dollars and as
+    a share of the game's volume. Prices are shown raw, so the two sides sum to
+    a point or two over 100 -- that gap is the bid/ask spread, and flattening it
+    would mean showing a number Kalshi never showed."""
+    kh, ka = kal.get("home"), kal.get("away")
+    if not kh or not ka or kh["price"] is None or ka["price"] is None:
+        return ""
+    hv, av = kh["volume"] or 0, ka["volume"] or 0
+    traded = hv + av
+    rows = ""
+    for team, row, vol in ((home, kh, hv), (away, ka, av)):
+        share = f" &middot; {100 * vol / traded:.0f}% of vol" if traded else ""
+        rows += (f'<div class="kalside"><span class="kalteam">{team}</span>'
+                 f'<span class="kalpct">{row["price"] * 100:.0f}%</span>'
+                 f'<span class="kalvol">{_money(vol)}{share}</span></div>')
+    return f"""
+<div class="splitrow">
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>{_money(traded)} traded</span></div>
+  {_split_bar(kh["price"], ka["price"], 'a', 'b')}
+  {rows}
+</div>"""
+
+
 def measured_ats_record(con, season: int) -> str:
     """The model's own graded ATS record, read straight from backtest_log, so the
     leans section can never read as an edge claim. Falls back to all seasons when
@@ -337,6 +378,14 @@ def render_week(season: int, week: int) -> Path:
             (season, week),
         ).fetchall():
             splits_by_game.setdefault(r["game_id"], {})[(r["bet_type"], r["side"])] = r
+
+        kalshi_by_game: dict[str, dict] = {}
+        for r in con.execute(
+            "SELECT * FROM kalshi_markets WHERE game_id IN "
+            "(SELECT game_id FROM games WHERE season=? AND week=?)",
+            (season, week),
+        ).fetchall():
+            kalshi_by_game.setdefault(r["game_id"], {})[r["side"]] = r
 
         line_moves_by_game: dict[str, list] = {}
         for r in con.execute(
@@ -484,7 +533,7 @@ def render_week(season: int, week: int) -> Path:
                                if move_bits else "")
 
         splits = splits_by_game.get(g["game_id"], {})
-        split_html = ""
+        split_html = _kalshi_block(kalshi_by_game.get(g["game_id"], {}), home, away)
         sh, sa = splits.get(("spread", "home")), splits.get(("spread", "away"))
         if sh and sa:
             div_h = (sh["handle_pct"] or 0) - (sh["bets_pct"] or 0)
@@ -510,7 +559,7 @@ def render_week(season: int, week: int) -> Path:
   {_split_bar(to['bets_pct'], tu['bets_pct'], 'c', 'd')}
   <div class="barnum">OVER {to['bets_pct']:.0f}% / UNDER {tu['bets_pct']:.0f}%</div>
 </div>"""
-        splits_block = (f'<div class="section-label">PUBLIC BETTING SPLITS</div>{split_html}') if split_html else ""
+        splits_block = (f'<div class="section-label">MARKET & PUBLIC MONEY</div>{split_html}') if split_html else ""
 
         badges = grade_badges(home) + grade_badges(away)
 
@@ -755,9 +804,14 @@ def render_week(season: int, week: int) -> Path:
     44-point anchor it replaced sat 1.6 points below the real average total every season and printed 42, 43 or
     44 on all sixteen games of a typical board. Edge is the model's number minus the market's —
     for spread it's points toward the team the model favors more than the market; for total it's points toward
-    Over or Under. Public betting splits show % of bets (ticket count) vs. % of handle (money) per side — when
-    handle leans one way notably more than bets do, that's the classic signature of sharp money, flagged at an
-    {SHARP_DIVERGENCE_THRESHOLD:.0f}-point gap. Input Quality (0-100) describes how settled a game's inputs are — how
+    Over or Under. Market &amp; public money reads top to bottom. The Kalshi line is that exchange's own winner
+    market: each team's price in cents reads straight off as an implied win probability, next to the money
+    traded on that side — in dollars (contracts are $1 each) and as a share of the game's volume. It is real
+    money taking a position, not a book's customer mix, so the two sides sum to a point or two over 100; that
+    gap is the bid/ask spread, shown as-is rather than flattened. Below it, the book splits show % of bets
+    (ticket count) vs. % of handle (money) per side — when handle leans one way notably more than bets do,
+    that's the classic signature of sharp money, flagged at an {SHARP_DIVERGENCE_THRESHOLD:.0f}-point gap.
+    Kalshi cannot show that flag: an exchange has no ticket-vs-handle split to diverge. Input Quality (0-100) describes how settled a game's inputs are — how
     steady the two teams' weekly grades have been, whether either rating is stale off a bye, how much of the
     number is injury-priced, and whether the line, forecast and rest days actually arrived. Each card names the
     input holding it down. It is NOT a forecast of accuracy and must not be read as one: across 2,851 graded

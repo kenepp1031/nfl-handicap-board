@@ -133,6 +133,19 @@ CREATE TABLE IF NOT EXISTS splits (
     PRIMARY KEY (game_id, bet_type, side)
 );
 
+-- Kalshi's own winner market per team: real money on an exchange, not a book's
+-- ticket/handle split, so it sits alongside `splits` rather than inside it.
+CREATE TABLE IF NOT EXISTS kalshi_markets (
+    game_id TEXT NOT NULL,
+    side TEXT NOT NULL,         -- home | away
+    ticker TEXT,                -- e.g. KXNFLGAME-26SEP20PHITEN-PHI
+    price REAL,                 -- 0-1 dollars per contract; reads directly as implied win probability
+    volume REAL,                -- contracts traded; $1 notional each, so also dollars traded
+    open_interest REAL,
+    checked_at TEXT,
+    PRIMARY KEY (game_id, side)
+);
+
 CREATE TABLE IF NOT EXISTS projections (
     game_id TEXT PRIMARY KEY,
     base_score_diff REAL,

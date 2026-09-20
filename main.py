@@ -21,7 +21,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 from db.db import connect, init_db
-from ingest import nflverse_games, nflverse_players, weather, referees, dk_lines, injuries
+from ingest import nflverse_games, nflverse_players, weather, referees, dk_lines, kalshi, injuries
 from grading import player_grades, position_groups, team_score
 from projection.base_model import training_pairs, fit_coefficient, DEFAULT_COEFFICIENT
 from projection.project import project_week
@@ -123,6 +123,7 @@ def weekly_run(season: int, week: int, skip_scrape: bool = False) -> Path:
         weather.refresh_week(season, week)
         referees.refresh_week(season, week)
         dk_lines.refresh_week(season, week)
+        kalshi.refresh_week(season, week)
         injuries.refresh()
 
     prior_scores = team_score.prior_exit_scores(season - 1)
