@@ -86,6 +86,19 @@ h1 .accent{background:linear-gradient(90deg,var(--gold),var(--gold2));-webkit-ba
 .confrow b{color:var(--text);}
 .empty-note{color:var(--text-dim);font-size:13px;margin-top:10px;}
 
+.sp-strip{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.sp-chip{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:10px 14px;
+  display:flex;align-items:center;gap:12px;min-width:220px;}
+.sp-chip .logo{width:22px;height:22px;}
+.sp-pick{font-size:16px;font-weight:800;color:var(--gold2);white-space:nowrap;}
+.sp-match{font-size:11.5px;color:var(--text-dim);letter-spacing:.03em;white-space:nowrap;}
+.sp-conf{margin-left:auto;background:var(--badge-bg);border:1px solid var(--card-border);color:var(--text-dim);
+  font-size:11px;font-weight:700;border-radius:4px;padding:2px 7px;white-space:nowrap;}
+.sp-conf b{color:var(--text);}
+.sp-res{font-size:11px;font-weight:800;border-radius:4px;padding:2px 7px;}
+.sp-res.w{background:var(--green);color:#06230f;} .sp-res.l{background:var(--red);color:#2b0606;}
+.sp-res.p{background:#3b4257;color:var(--text);}
+
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:14px;}
 .card{background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:10px;padding:16px;position:relative;}
 .card.best{border-color:var(--card-border-best);}
@@ -340,6 +353,40 @@ def measured_ats_record(con, season: int) -> str:
     return f"{label} ATS {w}-{l} ({100 * w / (w + l):.1f}%) · break-even is 52.4%"
 
 
+def grade_spread_pick(pick, home_abbr, closing_spread, home_score, away_score):
+    """'win'/'loss'/'push' for a posted spread pick against the book's closing
+    number, or None when the game has no final yet. closing_spread is
+    home-perspective (positive = home favored), the same convention as
+    team_line()."""
+    if home_score is None or away_score is None or closing_spread is None:
+        return None
+    cover = (home_score - away_score) - closing_spread
+    if pick != home_abbr:
+        cover = -cover
+    return "win" if cover > 0 else "loss" if cover < 0 else "push"
+
+
+def measured_spread_pick_record(con, season: int):
+    """Season record of the POSTED spread picks (best_bets rows), graded
+    against the closing line -- distinct from measured_ats_record, which grades
+    the model's lean on every game. Returns (wins, losses, pushes)."""
+    w = l = p = 0
+    for r in con.execute(
+        "SELECT b.pick, g.home_abbr, g.closing_spread, g.home_score, g.away_score "
+        "FROM best_bets b JOIN games g USING(game_id) "
+        "WHERE b.season=? AND b.bet_type='spread' AND g.home_score IS NOT NULL",
+        (season,),
+    ).fetchall():
+        res = grade_spread_pick(r["pick"], r["home_abbr"], r["closing_spread"], r["home_score"], r["away_score"])
+        if res == "win":
+            w += 1
+        elif res == "loss":
+            l += 1
+        elif res == "push":
+            p += 1
+    return w, l, p
+
+
 def _pick_text(bet, g, home):
     """'BUF -3.5' for a spread pick, 'OVER 44.5' for a total pick.
 
@@ -386,6 +433,7 @@ def render_week(season: int, week: int) -> Path:
             bets_by_game.setdefault(r["game_id"], []).append(r)
 
         ats_record_line = measured_ats_record(con, season)
+        sp_w, sp_l, sp_p = measured_spread_pick_record(con, season)
 
         group_scores = {
             (r["team_abbr"], r["position_group"]): r["score"]
@@ -465,12 +513,25 @@ def render_week(season: int, week: int) -> Path:
         return groups
 
     ticker_items, best_bet_cards, game_cards = [], [], []
+    spread_chips = []  # (confidence, html) -- the week's spread picks, ranked at the top of the page
 
     for g in games:
         home, away = g["home_abbr"], g["away_abbr"]
         conf = g["confidence_score"]
         game_bets = bets_by_game.get(g["game_id"], [])
         qualifying_bets = [b for b in game_bets if b["confidence_score"] is not None]
+
+        for b in qualifying_bets:
+            if b["bet_type"] != "spread":
+                continue
+            res = grade_spread_pick(b["pick"], home, g["closing_spread"], g["home_score"], g["away_score"])
+            res_html = f'<span class="sp-res {res[0]}">{res.upper()}</span>' if res else ""
+            spread_chips.append((b["confidence_score"], f"""
+<div class="sp-chip">
+  <img class="logo" src="{logo_url(b['pick'])}" alt="">
+  <div><div class="sp-pick">{_pick_text(b, g, home)}</div><div class="sp-match">{away} @ {home}</div></div>
+  {res_html}<span class="sp-conf">IQ <b>{b['confidence_score']:.0f}</b></span>
+</div>"""))
 
         for b in game_bets:
             if b["confidence_score"] is None:
@@ -666,13 +727,18 @@ def render_week(season: int, week: int) -> Path:
                 # Say when the team cap is binding. The per-player numbers are
                 # scaled down to sum to the cap, so without this note a reader sees
                 # a long list of shrunken figures with no explanation for why the
-                # starting left tackle is worth 0.86 instead of 1.0.
+                # starting left tackle is worth 0.86 instead of 1.0. The cap is on
+                # the roster list only; the quarterback is priced on top of it and
+                # his line is never scaled.
                 # Only worth saying when the overage is visible at the 1dp the
                 # lines are printed at; a team 0.03 over the cap would otherwise
                 # read "capped at 7; listed losses come to 7.0".
-                over = impact.get("raw_points", 0.0) - MAX_TEAM_POINTS
-                capnote = (f" <i>(capped at {MAX_TEAM_POINTS:.0f}; listed losses come to "
-                           f"{impact['raw_points']:.1f}, every line below scaled to fit)</i>"
+                roster_raw = impact.get("roster_raw", impact.get("raw_points", 0.0))
+                over = roster_raw - MAX_TEAM_POINTS
+                qb_on_top = (f", QB {impact['qb_points']:.1f} on top"
+                             if impact.get("qb_points", 0.0) >= 0.05 else "")
+                capnote = (f" <i>(roster list capped at {MAX_TEAM_POINTS:.0f}; listed non-QB losses come to "
+                           f"{roster_raw:.1f}, each scaled to fit{qb_on_top})</i>"
                            if impact.get("capped") and over >= 0.05 else "")
                 injury_bits.append(f"<b>{team} −{impact['points']:.1f}</b>{capnote}: {lines}")
         if abs(injury_val) > 0.05:
@@ -820,6 +886,20 @@ def render_week(season: int, week: int) -> Path:
         '<div class="empty-note">No model leans this week — every game sits on the market number.</div>'
     )
 
+    # Spread picks strip: the week's spread leans only, highest Input Quality
+    # first, each one graded as soon as its final is in. Totals are left off on
+    # purpose -- posted total picks have run well under break-even -- but every
+    # pick still appears in full in the leans grid and on its game card below.
+    spread_chips.sort(key=lambda t: -(t[0] or 0))
+    sp_graded = sp_w + sp_l
+    sp_record = (f"{season} posted spread picks {sp_w}-{sp_l}" + (f"-{sp_p}" if sp_p else "") +
+                 f" ({100 * sp_w / sp_graded:.1f}%) · break-even is 52.4%") if sp_graded else "no graded spread picks yet"
+    spread_section = (
+        f'<div class="section-title">SPREAD PICKS <span class="n">{len(spread_chips)} this week, ranked by Input Quality · {sp_record}</span></div>'
+        f'<div class="sp-strip">{"".join(h for _, h in spread_chips)}</div>'
+        if spread_chips else ""
+    )
+
     html_doc = f"""<!doctype html><html><head><meta charset="utf-8">
 <title>Edge Board — Week {week}, {season}</title><style>{CSS}</style></head>
 <body>
@@ -839,6 +919,8 @@ def render_week(season: int, week: int) -> Path:
     <span><span class="dot" style="background:var(--blue)"></span>Rain</span>
     <span><span class="dot" style="background:#e5e7eb"></span>Snow</span>
   </div>
+
+  {spread_section}
 
   <div class="section-title">MODEL LEANS <span class="n">{n_leans} leans across {n_lean_games} games · {ats_record_line}</span></div>
   {best_bets_section}
@@ -906,9 +988,13 @@ def render_week(season: int, week: int) -> Path:
     window of the last 8 games, with weeks 1-6 blending in last season's exit score (half at week 1, tapering
     to under a tenth by week 6). Each returning player's own grade is carried in from last season the same way,
     so a QB who changed teams brings his number with him. GAMES is how many of this season's games are in the
-    window. Injury scale (spread points for a full-time starter ruled Out): QB 5 · RB, WR, OT, DE/EDGE, CB 1 ·
-    TE, OLB 0.75 · G, C, DT, LB, S 0.5. Doubtful counts 90% of that, Questionable 40%, and everything is scaled
-    by the player's share of his unit's snaps over his team's last three games, with a 7-point cap per team.
+    window. Injury scale (spread points for a full-time starter ruled Out): RB, WR, OT, DE/EDGE, CB 1 ·
+    TE, OLB 0.75 · G, C, DT, LB, S 0.5, each scaled by the player's share of his unit's snaps over his recent
+    appearances, with a 7-point cap on that list. The quarterback is priced separately and on top of the cap:
+    losing the man who would start costs a flat 2.0 plus 0.2 for every rating point he sits above the best arm
+    still available, which is the closing line's own measured price for a starter out (2,677 games, 2015-2025).
+    QB ratings are a recency-weighted mean of the last three seasons' individual grades, this season included.
+    Doubtful counts 90% of any line, Questionable 40%.
     The per-player numbers in each Game Report are those points, applied to the model's own spread — which is
     what the projected score is built from, so they move the score you see. See nfl_handicapping_framework.md for the full model design.
   </div>
