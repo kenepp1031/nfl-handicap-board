@@ -43,6 +43,19 @@ h1 .accent{background:linear-gradient(90deg,var(--gold),var(--gold2));-webkit-ba
 .confrow b{color:var(--text);}
 .empty-note{color:var(--text-dim);font-size:13px;margin-top:10px;}
 
+.sp-strip{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.sp-chip{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:10px 14px;
+  display:flex;align-items:center;gap:12px;min-width:220px;}
+.sp-chip .logo{width:22px;height:22px;}
+.sp-pick{font-size:16px;font-weight:800;color:var(--gold2);white-space:nowrap;}
+.sp-match{font-size:11.5px;color:var(--text-dim);letter-spacing:.03em;white-space:nowrap;}
+.sp-conf{margin-left:auto;background:var(--badge-bg);border:1px solid var(--card-border);color:var(--text-dim);
+  font-size:11px;font-weight:700;border-radius:4px;padding:2px 7px;white-space:nowrap;}
+.sp-conf b{color:var(--text);}
+.sp-res{font-size:11px;font-weight:800;border-radius:4px;padding:2px 7px;}
+.sp-res.w{background:var(--green);color:#06230f;} .sp-res.l{background:var(--red);color:#2b0606;}
+.sp-res.p{background:#3b4257;color:var(--text);}
+
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:14px;}
 .card{background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:10px;padding:16px;position:relative;}
 .card.best{border-color:var(--card-border-best);}
@@ -134,6 +147,38 @@ table.power td.num{color:var(--text-dim);}
     <span><span class="dot" style="background:var(--blue)"></span>Rain</span>
     <span><span class="dot" style="background:#e5e7eb"></span>Snow</span>
   </div>
+
+  <div class="section-title">SPREAD PICKS <span class="n">6 this week, ranked by Input Quality · 2026 posted spread picks 10-6-2 (62.5%) · break-even is 52.4%</span></div><div class="sp-strip">
+<div class="sp-chip">
+  <img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/car.png" alt="">
+  <div><div class="sp-pick">CAR +3.5</div><div class="sp-match">DET @ CAR</div></div>
+  <span class="sp-conf">IQ <b>72</b></span>
+</div>
+<div class="sp-chip">
+  <img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/dal.png" alt="">
+  <div><div class="sp-pick">DAL +3.0</div><div class="sp-match">DAL @ HOU</div></div>
+  <span class="sp-conf">IQ <b>71</b></span>
+</div>
+<div class="sp-chip">
+  <img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/nyg.png" alt="">
+  <div><div class="sp-pick">NYG +2.5</div><div class="sp-match">ARI @ NYG</div></div>
+  <span class="sp-conf">IQ <b>68</b></span>
+</div>
+<div class="sp-chip">
+  <img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/ne.png" alt="">
+  <div><div class="sp-pick">NE +7.0</div><div class="sp-match">NE @ BUF</div></div>
+  <span class="sp-conf">IQ <b>65</b></span>
+</div>
+<div class="sp-chip">
+  <img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/ten.png" alt="">
+  <div><div class="sp-pick">TEN +11.5</div><div class="sp-match">TEN @ BAL</div></div>
+  <span class="sp-conf">IQ <b>63</b></span>
+</div>
+<div class="sp-chip">
+  <img class="logo" src="https://a.espncdn.com/i/teamlogos/nfl/500/no.png" alt="">
+  <div><div class="sp-pick">NO -2.5</div><div class="sp-match">ATL @ NO</div></div>
+  <span class="sp-conf">IQ <b>58</b></span>
+</div></div>
 
   <div class="section-title">MODEL LEANS <span class="n">18 leans across 14 games · 2026 ATS 25-21 (54.3%) · break-even is 52.4%</span></div>
   <div class="bb-grid">
@@ -330,9 +375,9 @@ table.power td.num{color:var(--text-dim);}
   <div class="linemove">📈 Line movement: Spread: Opened +3.5 → Now +4.5</div>
   <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$392K traded</span></div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$393K traded</span></div>
   <div class="bar"><div class="bar-a" style="width:34.7%"></div><div class="bar-b" style="width:65.3%"></div></div>
-  <div class="kalside"><span class="kalteam">WAS</span><span class="kalpct">35%</span><span class="kalvol">$279K &middot; 71% of vol</span></div><div class="kalside"><span class="kalteam">IND</span><span class="kalpct">66%</span><span class="kalvol">$113K &middot; 29% of vol</span></div>
+  <div class="kalside"><span class="kalteam">WAS</span><span class="kalpct">35%</span><span class="kalvol">$280K &middot; 71% of vol</span></div><div class="kalside"><span class="kalteam">IND</span><span class="kalpct">66%</span><span class="kalvol">$114K &middot; 29% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: IND</span></div>
@@ -374,7 +419,7 @@ table.power td.num{color:var(--text-dim);}
   <div class="linemove">📈 Line movement: Total: Opened 43.5 → Now 42.5</div>
   <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$478K traded</span></div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$479K traded</span></div>
   <div class="bar"><div class="bar-a" style="width:85.0%"></div><div class="bar-b" style="width:15.0%"></div></div>
   <div class="kalside"><span class="kalteam">BAL</span><span class="kalpct">85%</span><span class="kalvol">$239K &middot; 50% of vol</span></div><div class="kalside"><span class="kalteam">TEN</span><span class="kalpct">15%</span><span class="kalvol">$239K &middot; 50% of vol</span></div>
 </div>
@@ -383,8 +428,8 @@ table.power td.num{color:var(--text-dim);}
   <div class="bar"><div class="bar-a" style="width:68.0%"></div><div class="bar-b" style="width:32.0%"></div></div>
   <div class="barnum">BAL 68% / TEN 32%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:74.0%"></div><div class="bar-b" style="width:26.0%"></div></div>
-  <div class="barnum">BAL 74% / TEN 26%</div>
+  <div class="bar"><div class="bar-a" style="width:73.0%"></div><div class="bar-b" style="width:27.0%"></div></div>
+  <div class="barnum">BAL 73% / TEN 27%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
@@ -418,22 +463,22 @@ table.power td.num{color:var(--text-dim);}
   <div class="linemove">📈 Line movement: Total: Opened 48.5 → Now 49.5</div>
   <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$655K traded</span></div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$657K traded</span></div>
   <div class="bar"><div class="bar-a" style="width:74.3%"></div><div class="bar-b" style="width:25.7%"></div></div>
-  <div class="kalside"><span class="kalteam">BUF</span><span class="kalpct">75%</span><span class="kalvol">$491K &middot; 75% of vol</span></div><div class="kalside"><span class="kalteam">NE</span><span class="kalpct">26%</span><span class="kalvol">$164K &middot; 25% of vol</span></div>
+  <div class="kalside"><span class="kalteam">BUF</span><span class="kalpct">75%</span><span class="kalvol">$492K &middot; 75% of vol</span></div><div class="kalside"><span class="kalteam">NE</span><span class="kalpct">26%</span><span class="kalvol">$165K &middot; 25% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
-  <div class="bar"><div class="bar-a" style="width:62.0%"></div><div class="bar-b" style="width:38.0%"></div></div>
-  <div class="barnum">BUF 62% / NE 38%</div>
+  <div class="bar"><div class="bar-a" style="width:61.0%"></div><div class="bar-b" style="width:39.0%"></div></div>
+  <div class="barnum">BUF 61% / NE 39%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
   <div class="bar"><div class="bar-a" style="width:67.0%"></div><div class="bar-b" style="width:33.0%"></div></div>
   <div class="barnum">BUF 67% / NE 33%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:47.0%"></div><div class="bar-d" style="width:53.0%"></div></div>
-  <div class="barnum">OVER 47% / UNDER 53%</div>
+  <div class="bar"><div class="bar-c" style="width:48.0%"></div><div class="bar-d" style="width:52.0%"></div></div>
+  <div class="barnum">OVER 48% / UNDER 52%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>65</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 68% — reported, never ranked on.</div>
@@ -464,15 +509,15 @@ table.power td.num{color:var(--text-dim);}
 <div class="splitrow">
   <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$142K traded</span></div>
   <div class="bar"><div class="bar-a" style="width:62.4%"></div><div class="bar-b" style="width:37.6%"></div></div>
-  <div class="kalside"><span class="kalteam">CHI</span><span class="kalpct">63%</span><span class="kalvol">$93K &middot; 66% of vol</span></div><div class="kalside"><span class="kalteam">NYJ</span><span class="kalpct">38%</span><span class="kalvol">$48K &middot; 34% of vol</span></div>
+  <div class="kalside"><span class="kalteam">CHI</span><span class="kalpct">63%</span><span class="kalvol">$94K &middot; 66% of vol</span></div><div class="kalside"><span class="kalteam">NYJ</span><span class="kalpct">38%</span><span class="kalvol">$48K &middot; 34% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
   <div class="bar"><div class="bar-a" style="width:57.0%"></div><div class="bar-b" style="width:43.0%"></div></div>
   <div class="barnum">CHI 57% / NYJ 43%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:61.0%"></div><div class="bar-b" style="width:39.0%"></div></div>
-  <div class="barnum">CHI 61% / NYJ 39%</div>
+  <div class="bar"><div class="bar-a" style="width:62.0%"></div><div class="bar-b" style="width:38.0%"></div></div>
+  <div class="barnum">CHI 62% / NYJ 38%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
@@ -512,8 +557,8 @@ table.power td.num{color:var(--text-dim);}
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
-  <div class="bar"><div class="bar-a" style="width:37.0%"></div><div class="bar-b" style="width:63.0%"></div></div>
-  <div class="barnum">CIN 37% / JAX 63%</div>
+  <div class="bar"><div class="bar-a" style="width:38.0%"></div><div class="bar-b" style="width:62.0%"></div></div>
+  <div class="barnum">CIN 38% / JAX 62%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
   <div class="bar"><div class="bar-a" style="width:40.0%"></div><div class="bar-b" style="width:60.0%"></div></div>
   <div class="barnum">CIN 40% / JAX 60%</div>
@@ -550,9 +595,9 @@ table.power td.num{color:var(--text-dim);}
   <div class="linemove">📈 Line movement: Spread: Opened -2.5 → Now -3.0 · Total: Opened 47.5 → Now 48.5</div>
   <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$830K traded</span></div>
-  <div class="bar"><div class="bar-a" style="width:58.4%"></div><div class="bar-b" style="width:41.6%"></div></div>
-  <div class="kalside"><span class="kalteam">HOU</span><span class="kalpct">59%</span><span class="kalvol">$129K &middot; 16% of vol</span></div><div class="kalside"><span class="kalteam">DAL</span><span class="kalpct">42%</span><span class="kalvol">$700K &middot; 84% of vol</span></div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$832K traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:58.8%"></div><div class="bar-b" style="width:41.2%"></div></div>
+  <div class="kalside"><span class="kalteam">HOU</span><span class="kalpct">60%</span><span class="kalvol">$129K &middot; 16% of vol</span></div><div class="kalside"><span class="kalteam">DAL</span><span class="kalpct">42%</span><span class="kalvol">$703K &middot; 84% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
@@ -594,7 +639,7 @@ table.power td.num{color:var(--text-dim);}
   <div class="linemove">📈 Line movement: Spread: Opened +1.5 → Now +2.5</div>
   <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$239K traded</span></div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$240K traded</span></div>
   <div class="bar"><div class="bar-a" style="width:43.6%"></div><div class="bar-b" style="width:56.4%"></div></div>
   <div class="kalside"><span class="kalteam">NYG</span><span class="kalpct">44%</span><span class="kalvol">$89K &middot; 37% of vol</span></div><div class="kalside"><span class="kalteam">ARI</span><span class="kalpct">57%</span><span class="kalvol">$151K &middot; 63% of vol</span></div>
 </div>
@@ -638,22 +683,22 @@ table.power td.num{color:var(--text-dim);}
   <div class="linemove">📈 Line movement: Spread: Opened +3.0 → Now +3.5 · Total: Opened 45.5 → Now 42.5</div>
   <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$486K traded</span></div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$487K traded</span></div>
   <div class="bar"><div class="bar-a" style="width:36.6%"></div><div class="bar-b" style="width:63.4%"></div></div>
-  <div class="kalside"><span class="kalteam">PHI</span><span class="kalpct">37%</span><span class="kalvol">$199K &middot; 41% of vol</span></div><div class="kalside"><span class="kalteam">LA</span><span class="kalpct">64%</span><span class="kalvol">$287K &middot; 59% of vol</span></div>
+  <div class="kalside"><span class="kalteam">PHI</span><span class="kalpct">37%</span><span class="kalvol">$199K &middot; 41% of vol</span></div><div class="kalside"><span class="kalteam">LA</span><span class="kalpct">64%</span><span class="kalvol">$288K &middot; 59% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: LA</span></div>
-  <div class="bar"><div class="bar-a" style="width:47.0%"></div><div class="bar-b" style="width:53.0%"></div></div>
-  <div class="barnum">PHI 47% / LA 53%</div>
+  <div class="bar"><div class="bar-a" style="width:48.0%"></div><div class="bar-b" style="width:52.0%"></div></div>
+  <div class="barnum">PHI 48% / LA 52%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:37.0%"></div><div class="bar-b" style="width:63.0%"></div></div>
-  <div class="barnum">PHI 37% / LA 63%</div>
+  <div class="bar"><div class="bar-a" style="width:38.0%"></div><div class="bar-b" style="width:62.0%"></div></div>
+  <div class="barnum">PHI 38% / LA 62%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:56.0%"></div><div class="bar-d" style="width:44.0%"></div></div>
-  <div class="barnum">OVER 56% / UNDER 44%</div>
+  <div class="bar"><div class="bar-c" style="width:57.0%"></div><div class="bar-d" style="width:43.0%"></div></div>
+  <div class="barnum">OVER 57% / UNDER 43%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>69</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 77% — reported, never ranked on.</div>
@@ -691,13 +736,13 @@ table.power td.num{color:var(--text-dim);}
   <div class="bar"><div class="bar-a" style="width:52.0%"></div><div class="bar-b" style="width:48.0%"></div></div>
   <div class="barnum">TB 52% / GB 48%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:49.0%"></div><div class="bar-b" style="width:51.0%"></div></div>
-  <div class="barnum">TB 49% / GB 51%</div>
+  <div class="bar"><div class="bar-a" style="width:50.0%"></div><div class="bar-b" style="width:50.0%"></div></div>
+  <div class="barnum">TB 50% / GB 50%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:65.0%"></div><div class="bar-d" style="width:35.0%"></div></div>
-  <div class="barnum">OVER 65% / UNDER 35%</div>
+  <div class="bar"><div class="bar-c" style="width:66.0%"></div><div class="bar-d" style="width:34.0%"></div></div>
+  <div class="barnum">OVER 66% / UNDER 34%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>60</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 87% — reported, never ranked on.</div>
@@ -726,9 +771,9 @@ table.power td.num{color:var(--text-dim);}
   <div class="linemove">📈 Line movement: Spread: Opened -11.5 → Now -10.5</div>
   <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$300K traded</span></div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$302K traded</span></div>
   <div class="bar"><div class="bar-a" style="width:83.2%"></div><div class="bar-b" style="width:16.8%"></div></div>
-  <div class="kalside"><span class="kalteam">MIN</span><span class="kalpct">84%</span><span class="kalvol">$108K &middot; 36% of vol</span></div><div class="kalside"><span class="kalteam">MIA</span><span class="kalpct">17%</span><span class="kalvol">$192K &middot; 64% of vol</span></div>
+  <div class="kalside"><span class="kalteam">MIN</span><span class="kalpct">84%</span><span class="kalvol">$109K &middot; 36% of vol</span></div><div class="kalside"><span class="kalteam">MIA</span><span class="kalpct">17%</span><span class="kalvol">$193K &middot; 64% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
@@ -772,15 +817,15 @@ table.power td.num{color:var(--text-dim);}
 <div class="splitrow">
   <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$1.8M traded</span></div>
   <div class="bar"><div class="bar-a" style="width:34.7%"></div><div class="bar-b" style="width:65.3%"></div></div>
-  <div class="kalside"><span class="kalteam">LV</span><span class="kalpct">35%</span><span class="kalvol">$1.3M &middot; 70% of vol</span></div><div class="kalside"><span class="kalteam">KC</span><span class="kalpct">66%</span><span class="kalvol">$552K &middot; 30% of vol</span></div>
+  <div class="kalside"><span class="kalteam">LV</span><span class="kalpct">35%</span><span class="kalvol">$1.3M &middot; 70% of vol</span></div><div class="kalside"><span class="kalteam">KC</span><span class="kalpct">66%</span><span class="kalvol">$554K &middot; 30% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
   <div class="bar"><div class="bar-a" style="width:48.0%"></div><div class="bar-b" style="width:52.0%"></div></div>
   <div class="barnum">LV 48% / KC 52%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:45.0%"></div><div class="bar-b" style="width:55.0%"></div></div>
-  <div class="barnum">LV 45% / KC 55%</div>
+  <div class="bar"><div class="bar-a" style="width:46.0%"></div><div class="bar-b" style="width:54.0%"></div></div>
+  <div class="barnum">LV 46% / KC 54%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
@@ -814,17 +859,17 @@ table.power td.num{color:var(--text-dim);}
   
   <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$154K traded</span></div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$155K traded</span></div>
   <div class="bar"><div class="bar-a" style="width:75.2%"></div><div class="bar-b" style="width:24.8%"></div></div>
-  <div class="kalside"><span class="kalteam">SEA</span><span class="kalpct">76%</span><span class="kalvol">$58K &middot; 38% of vol</span></div><div class="kalside"><span class="kalteam">LAC</span><span class="kalpct">25%</span><span class="kalvol">$96K &middot; 62% of vol</span></div>
+  <div class="kalside"><span class="kalteam">SEA</span><span class="kalpct">76%</span><span class="kalvol">$58K &middot; 38% of vol</span></div><div class="kalside"><span class="kalteam">LAC</span><span class="kalpct">25%</span><span class="kalvol">$97K &middot; 62% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
   <div class="bar"><div class="bar-a" style="width:52.0%"></div><div class="bar-b" style="width:48.0%"></div></div>
   <div class="barnum">SEA 52% / LAC 48%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:57.0%"></div><div class="bar-b" style="width:43.0%"></div></div>
-  <div class="barnum">SEA 57% / LAC 43%</div>
+  <div class="bar"><div class="bar-a" style="width:56.0%"></div><div class="bar-b" style="width:44.0%"></div></div>
+  <div class="barnum">SEA 56% / LAC 44%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
@@ -858,9 +903,9 @@ table.power td.num{color:var(--text-dim);}
   <div class="linemove">📈 Line movement: Total: Opened 46.5 → Now 47.5</div>
   <div class="section-label">MARKET & PUBLIC MONEY</div>
 <div class="splitrow">
-  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$501K traded</span></div>
-  <div class="bar"><div class="bar-a" style="width:56.4%"></div><div class="bar-b" style="width:43.6%"></div></div>
-  <div class="kalside"><span class="kalteam">SF</span><span class="kalpct">57%</span><span class="kalvol">$298K &middot; 59% of vol</span></div><div class="kalside"><span class="kalteam">DEN</span><span class="kalpct">44%</span><span class="kalvol">$204K &middot; 41% of vol</span></div>
+  <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$503K traded</span></div>
+  <div class="bar"><div class="bar-a" style="width:56.0%"></div><div class="bar-b" style="width:44.0%"></div></div>
+  <div class="kalside"><span class="kalteam">SF</span><span class="kalpct">56%</span><span class="kalvol">$299K &middot; 59% of vol</span></div><div class="kalside"><span class="kalteam">DEN</span><span class="kalpct">44%</span><span class="kalvol">$204K &middot; 41% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span><span class="sharp">⚡ Sharp: SF</span></div>
@@ -916,8 +961,8 @@ table.power td.num{color:var(--text-dim);}
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
-  <div class="bar"><div class="bar-c" style="width:43.0%"></div><div class="bar-d" style="width:57.0%"></div></div>
-  <div class="barnum">OVER 43% / UNDER 57%</div>
+  <div class="bar"><div class="bar-c" style="width:44.0%"></div><div class="bar-d" style="width:56.0%"></div></div>
+  <div class="barnum">OVER 44% / UNDER 56%</div>
 </div>
   <div class="confidence-row"><span>Input Quality <span class="leannote">(how settled this game's inputs are — not a forecast of accuracy)</span></span><b>72</b></div>
   <div class="confreason">Held down by: more of this game than usual rests on the injury estimate.</div><div class="confreason">Market agreement: 71% — reported, never ranked on.</div>
@@ -948,15 +993,15 @@ table.power td.num{color:var(--text-dim);}
 <div class="splitrow">
   <div class="splitlabel"><span>KALSHI — WIN MARKET</span><span>$174K traded</span></div>
   <div class="bar"><div class="bar-a" style="width:54.9%"></div><div class="bar-b" style="width:45.1%"></div></div>
-  <div class="kalside"><span class="kalteam">NO</span><span class="kalpct">56%</span><span class="kalvol">$61K &middot; 35% of vol</span></div><div class="kalside"><span class="kalteam">ATL</span><span class="kalpct">46%</span><span class="kalvol">$113K &middot; 65% of vol</span></div>
+  <div class="kalside"><span class="kalteam">NO</span><span class="kalpct">56%</span><span class="kalvol">$62K &middot; 35% of vol</span></div><div class="kalside"><span class="kalteam">ATL</span><span class="kalpct">46%</span><span class="kalvol">$113K &middot; 65% of vol</span></div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>SPREAD — BETS</span></div>
   <div class="bar"><div class="bar-a" style="width:49.0%"></div><div class="bar-b" style="width:51.0%"></div></div>
   <div class="barnum">NO 49% / ATL 51%</div>
   <div class="splitlabel"><span>SPREAD — HANDLE</span></div>
-  <div class="bar"><div class="bar-a" style="width:50.0%"></div><div class="bar-b" style="width:50.0%"></div></div>
-  <div class="barnum">NO 50% / ATL 50%</div>
+  <div class="bar"><div class="bar-a" style="width:49.0%"></div><div class="bar-b" style="width:51.0%"></div></div>
+  <div class="barnum">NO 49% / ATL 51%</div>
 </div>
 <div class="splitrow">
   <div class="splitlabel"><span>TOTAL — BETS</span></div>
