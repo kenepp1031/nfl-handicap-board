@@ -18,12 +18,21 @@ charged SEA 5.0 x 1.0 x 0.10 = 0.5 points for losing its starting quarterback.
 Over his appearances the same player reads 1.00 and costs the full 5.0.
 
 Quarterback is the exception to the fixed scale, and is priced by
-grading.qb_rating instead: the charge is the rating gap between the man who
-would start and the best arm still available, times a coefficient measured
-against the closing line. A flat 5.0 says Seattle losing Sam Darnold to Drew
-Lock costs what Kansas City losing Patrick Mahomes to a third-stringer costs,
-and it also bills a team twice when two quarterbacks are on the report although
-only one of them was going to play.
+grading.qb_rating instead: a flat premium for losing the man who would start,
+plus a per-rating-point term for how far the best arm still available sits
+below him, both measured against the closing line. A flat 5.0 says Seattle
+losing Sam Darnold to Drew Lock costs what Kansas City losing Patrick Mahomes
+to a third-stringer costs, and it also bills a team twice when two quarterbacks
+are on the report although only one of them was going to play.
+
+The quarterback also sits OUTSIDE the team cap. MAX_TEAM_POINTS caps the rest
+of the list, and the QB charge is added on top. With him inside it, a long list
+of Questionables and August injured-reserve moves filled the cap before the
+quarterback was reached -- eleven of thirty-two teams sat at exactly 7.0 in
+2026 week 3, and Washington's number was the same 7.0 with Jayden Daniels ruled
+out as it would have been with him healthy. The cap exists to stop twenty small
+lines from adding up to a touchdown; it was never meant to erase the one line
+that the market prices at two points and more on its own.
 """
 from __future__ import annotations
 
@@ -55,9 +64,9 @@ STATUS_WEIGHT = {
 }
 HEALTHY_LOOKBACK_GAMES = 8  # appearances that define a player's role, newest first
 MIN_GAMES_FOR_ROLE = 3      # below this on the current team, look at where he came from
-MAX_TEAM_POINTS = 7.0       # cap on one team's total injury hit
+MAX_TEAM_POINTS = 7.0       # cap on one team's total injury hit, quarterback excluded
 MIN_POINTS_TO_NOTE = 0.1    # players below this still count, but aren't named
-QB_GROUP = "QB"             # only one quarterback plays, so only the priciest one is charged
+QB_GROUP = "QB"             # only one quarterback plays, so only the man who would start is charged
 
 _SUFFIX_RE = re.compile(r"\s+(jr|sr|ii|iii|iv)\.?$")
 
@@ -165,14 +174,18 @@ def _healthy_shares(con, team: str, season: int, week: int,
 
 def team_injury_impact(con, team: str, season: int, week: int) -> dict:
     """Returns {"points": total spread points this team's injuries cost it,
-    "players": [{name, position, status, share, points}, ...] sorted by points}."""
+    "players": [{name, position, status, share, points}, ...] sorted by points,
+    "roster_raw": the non-QB lines before the cap, "capped": whether it bound,
+    "qb_points": the quarterback's charge, which sits on top of the cap,
+    "raw_points": roster_raw + qb_points}."""
     listed, listed_pos = {}, {}
     for r in con.execute("SELECT player_name, position, status FROM injuries WHERE team_abbr=?", (team,)):
         key = _norm(r["player_name"])
         listed[key] = r["status"]
         listed_pos[key] = r["position"]
     if not listed:
-        return {"points": 0.0, "players": [], "raw_points": 0.0, "capped": False}
+        return {"points": 0.0, "players": [], "raw_points": 0.0, "roster_raw": 0.0,
+                "qb_points": 0.0, "capped": False}
     share_by_player = _healthy_shares(con, team, season, week, listed_pos)
 
     players = []
@@ -193,14 +206,6 @@ def team_injury_impact(con, team: str, season: int, week: int) -> dict:
         players.append({"name": name, "position": position, "status": status,
                         "share": share, "points": points})
 
-    qb = qbr.qb_injury_points(con, team, season, week, listed, _norm)
-    if qb and qb["points"] >= 0.05:
-        players.append({
-            "name": qb["starter"], "position": "QB", "status": qb["status"],
-            "share": 1.0, "points": qb["points"],
-            "note": (f'{qb["starter"]} rates {qb["starter_rating"]} against '
-                     f'{qb["backup"]} at {qb["backup_rating"]}'),
-        })
     players.sort(key=lambda p: -p["points"])
 
     # The cap is a cap on the TEAM, so it has to be a cap on the itemization too.
@@ -220,9 +225,31 @@ def team_injury_impact(con, team: str, season: int, week: int) -> dict:
         # this the report still misses by a couple of hundredths.
         residual = round(MAX_TEAM_POINTS - sum(p["points"] for p in players), 2)
         players[0]["points"] = round(players[0]["points"] + residual, 2)
-    total = min(MAX_TEAM_POINTS, raw)
-    return {"points": total, "players": players, "raw_points": raw,
-            "capped": raw > MAX_TEAM_POINTS}
+    roster_total = min(MAX_TEAM_POINTS, raw)
+
+    # The quarterback goes on AFTER the cap, never inside it -- see the module
+    # docstring for the week the cap swallowed Jayden Daniels whole.
+    qb_points = 0.0
+    qb = qbr.qb_injury_points(con, team, season, week, listed, _norm)
+    if qb and qb["points"] >= 0.05:
+        qb_points = qb["points"]
+        if qb["gap_points"] >= 0.05:
+            gap_text = f'plus {qb["gap_points"]:.1f} for the rating gap'
+        elif qb["gap_points"] <= -0.05:
+            gap_text = f'less {-qb["gap_points"]:.1f} for a backup who rates higher'
+        else:
+            gap_text = "and nothing for the rating gap"
+        players.append({
+            "name": qb["starter"], "position": "QB", "status": qb["status"],
+            "share": 1.0, "points": qb_points,
+            "note": (f'{qb["starter"]} rates {qb["starter_rating"]} against '
+                     f'{qb["backup"]} at {qb["backup_rating"]}: {qb["premium"]:.1f} for losing '
+                     f'the starter {gap_text}'),
+        })
+        players.sort(key=lambda p: -p["points"])
+    return {"points": round(roster_total + qb_points, 2), "players": players,
+            "raw_points": round(raw + qb_points, 2), "roster_raw": raw,
+            "qb_points": qb_points, "capped": raw > MAX_TEAM_POINTS}
 
 
 if __name__ == "__main__":

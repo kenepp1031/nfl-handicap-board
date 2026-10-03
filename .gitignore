@@ -1,6 +1,11 @@
 # Python
 __pycache__/
 *.pyc
+.venv/
+
+# Scheduled-run bookkeeping (see run_pipeline.ps1)
+logs/
+.pipeline.lock
 
 # Atomic-write temporaries / backups
 *.tmp

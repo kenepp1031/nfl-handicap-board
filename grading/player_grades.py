@@ -252,10 +252,15 @@ def blend_prior_season(season: int) -> int:
         }
         if not prior_avg:
             return 0
+        # grade AND source: the blend overwrites both, and grading.qb_rating needs
+        # to know afterwards whether the number underneath was the player's own
+        # individual grade or a team-unit proxy. Without that, every current-season
+        # game vanished from QB ratings until week 7 and a starter's rating was
+        # frozen at last year's while his backup's was too.
         current = {
-            (r["player_id"], r["week"]): r["grade"]
+            (r["player_id"], r["week"]): (r["grade"], r["source"])
             for r in con.execute(
-                "SELECT player_id, week, grade FROM player_grades WHERE season=? AND week<=?",
+                "SELECT player_id, week, grade, source FROM player_grades WHERE season=? AND week<=?",
                 (season, EARLY_SEASON_WEEKS),
             ).fetchall()
         }
@@ -278,10 +283,11 @@ def blend_prior_season(season: int) -> int:
             if prior is None:
                 continue
             w = weight_for(week)
-            existing = current.get((player_id, week))
+            existing, existing_source = current.get((player_id, week), (None, None))
             blended = existing * (1 - w) + prior * w if existing is not None else prior
             _upsert_grade(con, player_id, season, week, blended, "prior_season_blend", {
-                "prior_season_avg": prior, "current_season_grade": existing, "blend_weight": round(w, 3),
+                "prior_season_avg": prior, "current_season_grade": existing,
+                "current_season_source": existing_source, "blend_weight": round(w, 3),
             })
             updated += 1
     return updated

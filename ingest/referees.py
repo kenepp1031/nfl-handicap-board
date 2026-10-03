@@ -57,7 +57,8 @@ def scrape_assignments() -> dict[tuple[str, str], str]:
     assignments = {}
     try:
         raw = fetch_text(ROTOWIRE_REFS, timeout=30)
-    except Exception:
+    except Exception as ex:
+        print(f"referees: fetch failed ({ex!r}); keeping last assignments")
         return assignments
     match = re.search(
         r"<th><strong>Matchup</strong></th><th><strong>Referee</strong></th></tr></thead><tbody>(.*?)</tbody>",

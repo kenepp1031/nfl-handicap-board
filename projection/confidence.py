@@ -96,9 +96,11 @@ MAX_STALENESS_WEEKS = 3
 # what moves the spread; the gross is what the spread is RESTING on, and this
 # component is about how much weight sits on the softest input.
 #
-# Scaled against both teams at injury_adjust.MAX_TEAM_POINTS (7.0 each), i.e.
-# the most injury pricing a game can carry, so the term is a clean linear "how
-# much of this game is NOT resting on the injury estimate".
+# Scaled against both teams at injury_adjust.MAX_TEAM_POINTS (7.0 each). That
+# was the most injury pricing a game could carry; the quarterback now sits on
+# top of each team's cap, so a game with both starters out can run past 14 and
+# is clamped to zero there, which is the honest reading of a number that rests
+# on two quarterback estimates plus two full roster lists.
 #
 # No floor. A floor of 0.45 against a 14-point scale clamped roughly half the
 # live board to exactly 0.45 (2026 week 2 gross ran 4.4 to 11.5 with a median

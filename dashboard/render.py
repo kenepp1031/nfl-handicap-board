@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from common import TEAM_NAMES, VENUES, NOISE_ELITE, NOISE_LOUD, logo_url
+from common import TEAM_NAMES, NOISE_ELITE, NOISE_LOUD, logo_url, game_site
 from db.db import connect
 from projection.injury_adjust import team_injury_impact, MIN_POINTS_TO_NOTE, MAX_TEAM_POINTS
 from projection.project import MARKET_BLEND_WEIGHT, MIN_SPREAD_EDGE, MAX_SPREAD_LEAN
@@ -102,13 +102,61 @@ h1 .accent{background:linear-gradient(90deg,var(--gold),var(--gold2));-webkit-ba
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-top:14px;}
 .card{background:var(--card-bg);border:1.5px solid var(--card-border);border-radius:10px;padding:16px;position:relative;}
 .card.best{border-color:var(--card-border-best);}
-.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;min-height:44px;}
 .pill{font-size:10px;font-weight:800;letter-spacing:.05em;border-radius:4px;padding:3px 7px;}
 .pill-best{background:var(--gold);color:#1a1206;}
-.pill-weather{border:1px solid var(--card-border);color:var(--text-dim);background:#0d1220;}
-.pill-wind{border-color:var(--green);color:var(--green);}
-.pill-rain{border-color:var(--blue);color:var(--blue);}
-.pill-snow{border-color:#e5e7eb;color:#e5e7eb;}
+.neutral-tag{display:inline-block;margin-left:6px;font-size:9.5px;font-weight:800;letter-spacing:.06em;
+  color:var(--gold2);border:1px solid var(--gold);border-radius:4px;padding:1px 5px;vertical-align:middle;}
+
+/* Weather corner: a small animated scene per kind, caption under it. */
+.wx{position:absolute;top:10px;right:12px;width:60px;text-align:center;pointer-events:auto;}
+.wx .scene{position:relative;width:60px;height:36px;overflow:hidden;margin:0 auto;}
+.wx .cap{font-size:9.5px;font-weight:800;letter-spacing:.05em;color:var(--text-dim);margin-top:2px;white-space:nowrap;}
+.wx i{position:absolute;display:block;font-style:normal;}
+.wx .cloud{width:30px;height:12px;background:#9aa3b8;border-radius:12px;left:15px;top:6px;}
+.wx .cloud::before{content:"";position:absolute;width:14px;height:14px;background:#9aa3b8;border-radius:50%;left:5px;top:-7px;}
+.wx .cloud::after{content:"";position:absolute;width:10px;height:10px;background:#9aa3b8;border-radius:50%;left:16px;top:-4px;}
+/* rain */
+.wx-rain .cap{color:var(--blue);}
+.wx .drop{width:2px;height:8px;background:var(--blue);border-radius:2px;top:14px;animation:wxfall 1.1s linear infinite;}
+.wx .d1{left:22px;animation-delay:0s;} .wx .d2{left:30px;animation-delay:.35s;} .wx .d3{left:38px;animation-delay:.7s;}
+@keyframes wxfall{0%{transform:translateY(0);opacity:0;}20%{opacity:1;}100%{transform:translateY(22px);opacity:0;}}
+/* snow */
+.wx-snow .cap{color:#e5e7eb;}
+.wx .flake{color:#e5e7eb;font-size:9px;line-height:1;top:14px;animation:wxsnow 2.6s ease-in-out infinite;}
+.wx .f1{left:20px;animation-delay:0s;} .wx .f2{left:30px;animation-delay:.9s;} .wx .f3{left:40px;animation-delay:1.7s;}
+@keyframes wxsnow{0%{transform:translate(0,0);opacity:0;}15%{opacity:1;}50%{transform:translate(3px,11px);}
+  100%{transform:translate(-2px,22px);opacity:0;}}
+/* wind */
+.wx-wind .cap{color:var(--green);}
+.wx .gust{height:2px;background:var(--green);border-radius:2px;left:-30px;animation:wxgust 1.6s ease-in-out infinite;}
+.wx .g1{top:9px;width:26px;animation-delay:0s;} .wx .g2{top:17px;width:34px;animation-delay:.4s;} .wx .g3{top:25px;width:20px;animation-delay:.8s;}
+@keyframes wxgust{0%{transform:translateX(0);opacity:0;}30%{opacity:1;}100%{transform:translateX(95px);opacity:0;}}
+/* fog */
+.wx-fog .cap{color:#b8bfd0;}
+.wx .bank{height:5px;border-radius:5px;background:#8b93a7;opacity:.55;animation:wxdrift 4s ease-in-out infinite alternate;}
+.wx .b1{top:8px;left:6px;width:40px;} .wx .b2{top:16px;left:14px;width:42px;animation-delay:-1.3s;} .wx .b3{top:24px;left:4px;width:36px;animation-delay:-2.6s;}
+@keyframes wxdrift{from{transform:translateX(-5px);}to{transform:translateX(5px);}}
+/* cold */
+.wx-cold .cap{color:#93c5fd;}
+.wx .ice{color:#93c5fd;font-size:24px;line-height:36px;left:0;right:0;top:0;animation:wxpulse 2.4s ease-in-out infinite;}
+@keyframes wxpulse{0%,100%{transform:scale(1);opacity:.75;}50%{transform:scale(1.15);opacity:1;}}
+/* overcast */
+.wx .cloud.big{left:12px;top:12px;width:34px;animation:wxdrift 5s ease-in-out infinite alternate;}
+.wx .cloud.small{left:30px;top:4px;width:18px;height:8px;background:#6f788e;animation:wxdrift 7s ease-in-out infinite alternate-reverse;}
+.wx .cloud.small::before{width:9px;height:9px;left:3px;top:-4px;background:#6f788e;} .wx .cloud.small::after{display:none;}
+/* clear */
+.wx-clear .cap{color:var(--gold2);}
+.wx .sun{width:16px;height:16px;border-radius:50%;background:var(--gold2);left:22px;top:10px;box-shadow:0 0 10px 2px rgba(251,191,36,.45);}
+.wx .rays{width:30px;height:30px;left:15px;top:3px;border-radius:50%;
+  background:repeating-conic-gradient(rgba(251,191,36,.7) 0 6deg,transparent 6deg 30deg);
+  -webkit-mask:radial-gradient(circle,transparent 9px,#000 10px);mask:radial-gradient(circle,transparent 9px,#000 10px);
+  animation:wxspin 14s linear infinite;}
+@keyframes wxspin{to{transform:rotate(360deg);}}
+/* dome */
+.wx-dome .cap{color:var(--text-dim);}
+.wx .roof{width:36px;height:18px;left:12px;top:8px;border:2px solid #8b93a7;border-bottom:0;border-radius:18px 18px 0 0;background:#1a2136;}
+.wx .base{width:44px;height:3px;left:8px;top:26px;background:#8b93a7;border-radius:2px;}
 .teams{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);letter-spacing:.04em;margin-bottom:2px;}
 .team-names{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
 .team-home{color:var(--teal);font-weight:800;font-size:19px;display:flex;align-items:center;gap:6px;}
@@ -215,14 +263,55 @@ def letter_grade(score):
     return "F"
 
 
-def _weather_badge(row):
-    if row["wind_mph"] is not None and row["wind_mph"] >= 15:
-        return '<span class="pill pill-weather pill-wind">WIND 15+</span>'
-    if row["precip_type"] == "rain":
-        return '<span class="pill pill-weather pill-rain">RAIN</span>'
+def weather_kind(row, indoors: bool | None) -> str:
+    """One word naming the card's weather picture, in priority order: the roof
+    first, then what falls, then wind, then fog/cold, then the sky. 'pending'
+    when no forecast has landed yet (games more than ~2 weeks out)."""
+    if indoors or (row["roof_type"] or "") in ("dome", "closed"):
+        return "dome"
+    if row["temp_f"] is None:
+        return "pending"
     if row["precip_type"] == "snow":
-        return '<span class="pill pill-weather pill-snow">SNOW</span>'
-    return ""
+        return "snow"
+    if row["precip_type"] == "rain":
+        return "rain"
+    if row["wind_mph"] is not None and row["wind_mph"] >= 15:
+        return "wind"
+    if row["sky"] == "fog":
+        return "fog"
+    if row["temp_f"] <= 35:
+        return "cold"
+    if row["sky"] == "overcast":
+        return "cloud"
+    return "clear"
+
+
+def _weather_widget(row, kind: str) -> str:
+    """The animated weather picture in the card's top-right corner. Pure CSS,
+    one small element per kind; the caption underneath carries the number that
+    matters for that kind (wind speed, temperature) so the picture is never the
+    only thing saying it."""
+    if kind == "pending":
+        return ""
+    temp = f"{row['temp_f']:.0f}°" if row["temp_f"] is not None else ""
+    wind = f"{row['wind_mph']:.0f} mph" if row["wind_mph"] is not None else ""
+    caption = {
+        "dome": "DOME", "rain": f"RAIN {temp}", "snow": f"SNOW {temp}", "wind": f"WIND {wind}",
+        "fog": f"FOG {temp}", "cold": f"COLD {temp}", "cloud": f"{temp}", "clear": f"{temp}",
+    }[kind]
+    scene = {
+        "dome":  '<i class="roof"></i><i class="base"></i>',
+        "rain":  '<i class="cloud"></i><i class="drop d1"></i><i class="drop d2"></i><i class="drop d3"></i>',
+        "snow":  '<i class="cloud"></i><i class="flake f1">✦</i><i class="flake f2">✦</i><i class="flake f3">✦</i>',
+        "wind":  '<i class="gust g1"></i><i class="gust g2"></i><i class="gust g3"></i>',
+        "fog":   '<i class="bank b1"></i><i class="bank b2"></i><i class="bank b3"></i>',
+        "cold":  '<i class="ice">❄</i>',
+        "cloud": '<i class="cloud big"></i><i class="cloud small"></i>',
+        "clear": '<i class="sun"></i><i class="rays"></i>',
+    }[kind]
+    title = (row["alert_text"] or "").replace('"', "'") or caption
+    return (f'<div class="wx wx-{kind}" title="{title}"><div class="scene">{scene}</div>'
+            f'<div class="cap">{caption}</div></div>')
 
 
 def _edge_row(label, model_val, market_val, unit="pts", better_side=None, signed=True):
@@ -414,7 +503,7 @@ def render_week(season: int, week: int) -> Path:
                       p.confidence_parts_json, p.market_agreement,
                       p.pre_shrink_spread, p.pre_shrink_total, p.base_score_diff, p.hfa_adj, p.rest_adj, p.weather_adj,
                       p.rivalry_adj, p.ref_adj, p.injury_adj,
-                      w.temp_f, w.wind_mph, w.precip_type, w.alert_text,
+                      w.temp_f, w.wind_mph, w.precip_type, w.alert_text, w.sky,
                       o.referee_name, o.crew_home_ats_pct, o.crew_games
                FROM games g
                LEFT JOIN projections p ON p.game_id = g.game_id
@@ -557,14 +646,18 @@ def render_week(season: int, week: int) -> Path:
 </div>""")
 
         # --- full card ---
-        weather_badge = _weather_badge(g)
         best_pill = "<span></span>"
 
-        venue = VENUES.get(home, "")
-        if g["roof_type"] == "dome":
-            weather_line = "Dome"
-        elif g["roof_type"] == "closed":
-            weather_line = "Roof Closed"
+        # Where the game is really played. A neutral-site "home" team (the Colts
+        # in London listed as Washington's home game) must not bring its own
+        # stadium, forecast or crowd-noise icon along.
+        _lat, _lon, site_indoors, venue, is_neutral = game_site(home, g["stadium"], bool(g["neutral_site"]))
+        if is_neutral:
+            venue = f'{venue} <span class="neutral-tag">NEUTRAL SITE</span>'
+        wx_kind = weather_kind(g, site_indoors)
+        weather_badge = _weather_widget(g, wx_kind)
+        if wx_kind == "dome":
+            weather_line = "Roof Closed" if g["roof_type"] == "closed" else "Dome"
         elif g["alert_text"]:
             weather_line = g["alert_text"]
         elif g["temp_f"] is not None:
@@ -684,7 +777,9 @@ def render_week(season: int, week: int) -> Path:
         # --- Game Report: plain-English account of what actually moved the number ---
         report_items = []
         hfa_val = g["hfa_adj"] or 0.0
-        if hfa_val >= 2.5:
+        if is_neutral:
+            report_items.append(f"Neutral site — {home} is the home team in name only, so no home-field edge is applied.")
+        elif hfa_val >= 2.5:
             report_items.append(f"Elevated home-field bonus for {home} (+{hfa_val:.1f} pts) — a notably loud/tough road venue.")
         elif hfa_val > 0.05:
             report_items.append(f"Standard home-field edge for {home} (+{hfa_val:.1f} pts).")
@@ -795,7 +890,9 @@ def render_week(season: int, week: int) -> Path:
                                   f'— reported, never ranked on.</div>')
         weather_meta = f'<div class="metaline">{weather_line}</div>' if weather_line else ""
         speaker = ""
-        if home in NOISE_ELITE:
+        if is_neutral:
+            pass  # no home crowd to speak of
+        elif home in NOISE_ELITE:
             speaker = '<span title="Elite crowd noise — bigger home-field bump">🔊</span>'
         elif home in NOISE_LOUD:
             speaker = '<span title="Loud venue — modest home-field bump">🔈</span>'
@@ -915,9 +1012,13 @@ def render_week(season: int, week: int) -> Path:
     <div class="weektag">WEEK {week} · {season} · {n_games} GAMES</div>
   </div>
   <div class="legend">
-    <span><span class="dot" style="background:var(--green)"></span>Wind 15mph+</span>
+    <span>Top-right corner of each card is the kickoff forecast at the real site:</span>
     <span><span class="dot" style="background:var(--blue)"></span>Rain</span>
     <span><span class="dot" style="background:#e5e7eb"></span>Snow</span>
+    <span><span class="dot" style="background:var(--green)"></span>Wind 15mph+</span>
+    <span><span class="dot" style="background:#93c5fd"></span>Cold (35°F or under)</span>
+    <span><span class="dot" style="background:#8b93a7"></span>Fog · Overcast · Dome</span>
+    <span><span class="dot" style="background:var(--gold2)"></span>Clear</span>
   </div>
 
   {spread_section}

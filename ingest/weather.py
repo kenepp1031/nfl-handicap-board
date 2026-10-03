@@ -10,7 +10,7 @@ from pathlib import Path
 from urllib.parse import urlencode
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from common import STADIUMS, fetch_json
+from common import game_site, fetch_json
 from db.db import connect
 
 OPEN_METEO = "https://api.open-meteo.com/v1/forecast"
@@ -65,11 +65,17 @@ def forecast_window(hourly: dict, kickoff: datetime) -> dict:
     precip_type = None
     if total > 0:
         precip_type = "snow" if set(codes) & SNOW_CODES else "rain"
+    # WMO code at kickoff: 0 clear, 1-2 some cloud, 3 overcast, 45/48 fog.
+    # Precipitation codes leave sky None; precip_type already says what falls.
+    kick = codes[0]
+    sky = ("clear" if kick == 0 else "partly" if kick in (1, 2) else "overcast" if kick == 3
+           else "fog" if kick in (45, 48) else None)
     return dict(
         temp_f=temperature[0], wind_mph=wind,
         precip_type=precip_type,
         precip_prob=probability,
         alert=weather_flags(wind, gust, total, probability, codes),
+        sky=sky,
     )
 
 
@@ -78,15 +84,16 @@ def refresh_week(season: int, week: int) -> int:
     checked = datetime.now(timezone.utc).isoformat(timespec="minutes")
     with connect() as con:
         games = con.execute(
-            "SELECT game_id, home_abbr, kickoff_utc FROM games WHERE season=? AND week=?",
+            "SELECT game_id, home_abbr, kickoff_utc, stadium, neutral_site, roof_type FROM games WHERE season=? AND week=?",
             (season, week),
         ).fetchall()
         for g in games:
-            stadium = STADIUMS.get(g["home_abbr"])
-            if not stadium:
-                continue
-            lat, lon, indoors = stadium
-            if indoors:
+            lat, lon, indoors, _label, _neutral = game_site(g["home_abbr"], g["stadium"], bool(g["neutral_site"]))
+            if lat is None:
+                continue  # uncatalogued neutral site: no forecast beats the wrong city's
+            # nflverse's roof column is blank on a handful of rows (AT&T, NRG,
+            # State Farm this season), so the stadium table's own flag decides.
+            if indoors or (g["roof_type"] or "") in ("dome", "closed"):
                 con.execute(
                     "INSERT INTO weather(game_id, checked_at) VALUES(?,?) "
                     "ON CONFLICT(game_id) DO UPDATE SET checked_at=excluded.checked_at",
@@ -109,16 +116,20 @@ def refresh_week(season: int, week: int) -> int:
             try:
                 data = fetch_json(OPEN_METEO + "?" + params)
                 forecast = forecast_window(data.get("hourly", {}), dt)
-            except Exception:
-                continue  # forecast likely too far out yet -- try again next run
+            except ValueError:
+                continue  # forecast window not published yet (game too far out) -- try again next run
+            except Exception as ex:
+                print(f"weather: {g['game_id']} fetch failed ({ex!r})")
+                continue
             con.execute(
-                """INSERT INTO weather(game_id, temp_f, wind_mph, precip_type, precip_prob, alert_text, checked_at)
-                   VALUES(?,?,?,?,?,?,?)
+                """INSERT INTO weather(game_id, temp_f, wind_mph, precip_type, precip_prob, alert_text, checked_at, sky)
+                   VALUES(?,?,?,?,?,?,?,?)
                    ON CONFLICT(game_id) DO UPDATE SET
                        temp_f=excluded.temp_f, wind_mph=excluded.wind_mph, precip_type=excluded.precip_type,
-                       precip_prob=excluded.precip_prob, alert_text=excluded.alert_text, checked_at=excluded.checked_at""",
+                       precip_prob=excluded.precip_prob, alert_text=excluded.alert_text, checked_at=excluded.checked_at,
+                       sky=excluded.sky""",
                 (g["game_id"], forecast["temp_f"], forecast["wind_mph"], forecast["precip_type"],
-                 forecast["precip_prob"], forecast["alert"], checked),
+                 forecast["precip_prob"], forecast["alert"], checked, forecast["sky"]),
             )
             updated += 1
     return updated

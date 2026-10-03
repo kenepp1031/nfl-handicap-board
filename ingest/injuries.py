@@ -56,13 +56,22 @@ class InjuryParser(HTMLParser):
 def refresh() -> int:
     try:
         source = fetch_text(ESPN_INJURIES, timeout=30)
-    except Exception:
+    except Exception as ex:
+        print(f"injuries: ESPN fetch failed ({ex!r}); keeping last pull")
         return 0
     parser = InjuryParser()
     parser.feed(source)
+    if not parser.rows:
+        print("injuries: ESPN page parsed to zero rows; keeping last pull")
+        return 0
     timestamp = datetime.now(timezone.utc).isoformat(timespec="minutes")
     updated = 0
     with connect() as con:
+        # A player who has dropped off ESPN's page is healthy (or cut). Rows
+        # used to live here forever, so by week 4 every team carried 8-11
+        # stale Out/Questionable lines from September that were still being
+        # priced into the spread and the confidence score.
+        con.execute("DELETE FROM injuries")
         for team_name, player, position, _return_date, status, *rest in parser.rows:
             abbr = NAME_TO_ABBR.get(team_name)
             if not abbr:

@@ -9,6 +9,21 @@ import time
 from pathlib import Path
 from urllib.request import Request, urlopen
 
+# Windows only trusts the root certs CryptoAPI happens to have cached locally,
+# so Python's default context can't verify a host chaining to a root it hasn't
+# pulled down yet -- on a fresh install here that broke github.com (nflverse
+# releases), Kalshi and Action Network while Let's Encrypt hosts kept working.
+# truststore hands verification to the OS store, which fetches those roots on
+# demand; bundling certifi instead would just pin a snapshot that goes stale.
+# Optional so the Streamlit Cloud deploy, on Linux with a complete CA bundle,
+# doesn't need it.
+try:
+    import truststore
+
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+
 APP_DIR = Path(__file__).parent
 CACHE_DIR = APP_DIR / "cache"
 CACHE_DIR.mkdir(exist_ok=True)
@@ -60,7 +75,7 @@ TEAM_NAMES = {
 
 # (lat, lon, indoors) -- ported from the old app's STADIUMS, re-keyed to nflverse abbrs.
 STADIUMS = {
-    "ARI": (33.5276, -112.2626, False), "ATL": (33.7554, -84.4008, True),
+    "ARI": (33.5276, -112.2626, True), "ATL": (33.7554, -84.4008, True),  # State Farm: retractable, closed on game day
     "BAL": (39.2780, -76.6227, False), "BUF": (42.7738, -78.7868, False),
     "CAR": (35.2258, -80.8528, False), "CHI": (41.8623, -87.6167, False),
     "CIN": (39.0954, -84.5160, False), "CLE": (41.5061, -81.6995, False),
@@ -97,6 +112,50 @@ VENUES = {
     "SEA": "Lumen Field · Seattle, WA", "TB": "Raymond James Stadium · Tampa, FL",
     "TEN": "Nissan Stadium · Nashville, TN", "WAS": "Northwest Stadium · Landover, MD",
 }
+
+# Neutral-site venues the league has used or announced, keyed by the stadium
+# name exactly as nflverse's games.csv prints it: (lat, lon, indoors, label).
+# A "home" team at one of these is home in name only -- the forecast, the
+# venue line and the home-field bump all have to come from here, not from
+# STADIUMS/VENUES, or the London game gets Landover weather.
+NEUTRAL_SITES = {
+    "Tottenham Hotspur Stadium": (51.6043, -0.0664, False, "Tottenham Hotspur Stadium · London, UK"),
+    "Wembley Stadium": (51.5560, -0.2795, False, "Wembley Stadium · London, UK"),
+    "Twickenham Stadium": (51.4559, -0.3415, False, "Twickenham Stadium · London, UK"),
+    "FC Bayern Munich Stadium": (48.2188, 11.6247, False, "Allianz Arena · Munich, Germany"),
+    "Allianz Arena": (48.2188, 11.6247, False, "Allianz Arena · Munich, Germany"),
+    "Deutsche Bank Park": (50.0686, 8.6455, False, "Deutsche Bank Park · Frankfurt, Germany"),
+    "Olympiastadion Berlin": (52.5147, 13.2395, False, "Olympiastadion · Berlin, Germany"),
+    "Estadio Banorte": (19.3029, -99.1505, False, "Estadio Azteca · Mexico City, Mexico"),
+    "Estadio Azteca": (19.3029, -99.1505, False, "Estadio Azteca · Mexico City, Mexico"),
+    "Maracana Stadium": (-22.9122, -43.2302, False, "Maracanã · Rio de Janeiro, Brazil"),
+    "Neo Quimica Arena": (-23.5453, -46.4742, False, "Neo Química Arena · São Paulo, Brazil"),
+    "Stade de France": (48.9244, 2.3601, False, "Stade de France · Paris, France"),
+    "Bernabeu": (40.4531, -3.6883, True, "Santiago Bernabéu · Madrid, Spain"),
+    "Santiago Bernabeu": (40.4531, -3.6883, True, "Santiago Bernabéu · Madrid, Spain"),
+    "Croke Park": (53.3607, -6.2512, False, "Croke Park · Dublin, Ireland"),
+    "Melbourne Cricket Ground": (-37.8200, 144.9834, False, "Melbourne Cricket Ground · Melbourne, Australia"),
+}
+
+
+def game_site(home_abbr: str, stadium: str | None, neutral: bool):
+    """(lat, lon, indoors, venue_label, is_neutral) for a game. Neutral games
+    resolve by stadium name; a neutral stadium we have not catalogued still gets
+    its name on the card and no forecast, which beats the wrong city's forecast.
+    Everything else is the home team's own building."""
+    # nflverse flags most international games location='Neutral', but the
+    # Jaguars' annual London game is their designated home game and comes
+    # through as 'Home' at Tottenham -- so a catalogued neutral stadium counts
+    # as neutral whatever the flag says.
+    site = NEUTRAL_SITES.get((stadium or "").strip())
+    if site:
+        lat, lon, indoors, label = site
+        return lat, lon, indoors, label, True
+    if neutral:
+        return None, None, None, (stadium or "Neutral site"), True
+    lat, lon, indoors = STADIUMS.get(home_abbr, (None, None, None))
+    return lat, lon, indoors, VENUES.get(home_abbr, stadium or ""), False
+
 
 # Personal read on venues that meaningfully hurt a visiting offense beyond the
 # league-average home-field bump. Ported from the old app.

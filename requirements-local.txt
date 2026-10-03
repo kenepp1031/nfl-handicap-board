@@ -1,0 +1,15 @@
+# Dependencies for running the pipeline (main.py) locally on Windows.
+# requirements.txt is the Streamlit Cloud deploy's list and stays streamlit-only
+# -- the cloud app just embeds the rendered dashboard/dashboard.html.
+#
+# Install into the project venv:
+#     py -3 -m venv .venv
+#     .venv\Scripts\python.exe -m pip install -r requirements-local.txt
+
+# Windows ships no IANA time zone database, so zoneinfo.ZoneInfo() raises
+# without this (ingest/nflverse_games.py needs America/New_York for kickoffs).
+tzdata
+
+# Verify TLS against the Windows certificate store, which resolves roots on
+# demand -- see the comment in common.py.
+truststore

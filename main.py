@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -59,9 +59,12 @@ def current_season_week(today: date | None = None, refresh_schedule: bool = Fals
     try:
         with connect() as con:
             rows = con.execute(
-                """SELECT week, SUM(home_score IS NULL) AS unplayed FROM games
+                """SELECT week, SUM(home_score IS NULL AND kickoff_utc > ?) AS unplayed FROM games
                    WHERE season=? AND game_type='REG' GROUP BY week ORDER BY week""",
-                (year,),
+                # A game with no score more than a day after its kickoff was
+                # postponed or cancelled; without this cutoff it would pin the
+                # board on that week for the rest of the season.
+                ((datetime.now(timezone.utc) - timedelta(hours=30)).strftime("%Y-%m-%dT%H:%M:%S"), year),
             ).fetchall()
     except Exception:
         rows = []

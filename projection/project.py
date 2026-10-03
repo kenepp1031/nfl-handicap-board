@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from common import game_site
 from db.db import connect
 from projection import adjustments as adj
 from projection.base_model import training_pairs, fit_coefficient, DEFAULT_COEFFICIENT
@@ -157,7 +158,11 @@ def project_week(season: int, week: int, coefficient: float | None = None,
                 continue
             base_diff = coefficient * (home_score - away_score)
 
-            hfa = adj.hfa_adjust(g["home_abbr"]) if enabled["hfa"] else 0.0
+            # A neutral-site game (London, Munich, Mexico City...) has no home crowd
+            # and both teams travelled, so the listed home team gets no bump.
+            _lat, _lon, site_indoors, _venue, neutral = game_site(
+                g["home_abbr"], g["stadium"], bool(g["neutral_site"]))
+            hfa = adj.hfa_adjust(g["home_abbr"]) if enabled["hfa"] and not neutral else 0.0
 
             rest = adj.rest_adjust(g["rest_days_home"], g["rest_days_away"]) if enabled["rest"] else 0.0
 
@@ -287,7 +292,7 @@ def project_week(season: int, week: int, coefficient: float | None = None,
                 n_adjustments_fired=n_adjustments_fired,
                 has_market_line=market_spread is not None,
                 has_weather=wrow is not None,
-                is_indoors=g["roof_type"] in ("dome", "closed"),
+                is_indoors=site_indoors or g["roof_type"] in ("dome", "closed"),
                 has_rest=g["rest_days_home"] is not None and g["rest_days_away"] is not None,
                 home_sd=_rating_volatility(con, g["home_abbr"], season, week),
                 away_sd=_rating_volatility(con, g["away_abbr"], season, week),

@@ -19,6 +19,9 @@ MIGRATIONS = [
     ("projections", "injury_gross", "REAL"),
     ("projections", "pred_home_score", "INTEGER"),
     ("projections", "pred_away_score", "INTEGER"),
+    ("games", "neutral_site", "INTEGER"),   # 1 = nflverse location 'Neutral' (London, Munich, ...)
+    ("games", "stadium", "TEXT"),           # nflverse stadium name, the real site even when neutral
+    ("weather", "sky", "TEXT"),             # clear | partly | overcast | fog, kickoff hour
 ]
 
 

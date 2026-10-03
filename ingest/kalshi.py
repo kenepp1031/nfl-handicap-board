@@ -123,7 +123,8 @@ def fetch_markets() -> list[dict]:
 def refresh_week(season: int, week: int) -> int:
     try:
         parsed = fetch_markets()
-    except Exception:
+    except Exception as ex:
+        print(f"kalshi: fetch failed ({ex!r}); keeping last prices")
         return 0
     by_matchup = {(g["away_abbr"], g["home_abbr"]): g for g in parsed}
     if not by_matchup:

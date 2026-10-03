@@ -63,16 +63,25 @@ def ingest(seasons: list[int]) -> int:
                 """INSERT INTO games(game_id, season, week, game_type, kickoff_utc,
                        home_abbr, away_abbr, roof_type, is_divisional,
                        rest_days_home, rest_days_away, closing_spread, closing_total,
-                       referee, home_score, away_score)
-                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                       referee, home_score, away_score, neutral_site, stadium)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                    ON CONFLICT(game_id) DO UPDATE SET
                        kickoff_utc=excluded.kickoff_utc,
                        roof_type=excluded.roof_type,
+                       neutral_site=excluded.neutral_site,
+                       stadium=excluded.stadium,
                        is_divisional=excluded.is_divisional,
                        rest_days_home=excluded.rest_days_home,
                        rest_days_away=excluded.rest_days_away,
-                       closing_spread=COALESCE(excluded.closing_spread, games.closing_spread),
-                       closing_total=COALESCE(excluded.closing_total, games.closing_total),
+                       -- Before kickoff the live DraftKings line (ingest/dk_lines.py) owns these
+                       -- columns; nflverse's spread_line is an opener that would overwrite it
+                       -- every run. Once the game is final nflverse's closing number takes over.
+                       closing_spread=CASE WHEN excluded.home_score IS NOT NULL
+                                           THEN COALESCE(excluded.closing_spread, games.closing_spread)
+                                           ELSE COALESCE(games.closing_spread, excluded.closing_spread) END,
+                       closing_total=CASE WHEN excluded.home_score IS NOT NULL
+                                          THEN COALESCE(excluded.closing_total, games.closing_total)
+                                          ELSE COALESCE(games.closing_total, excluded.closing_total) END,
                        referee=COALESCE(excluded.referee, games.referee),
                        home_score=excluded.home_score,
                        away_score=excluded.away_score""",
@@ -84,6 +93,8 @@ def ingest(seasons: list[int]) -> int:
                     _float_or_none(r.get("spread_line")), _float_or_none(r.get("total_line")),
                     r.get("referee") or None,
                     _int_or_none(r.get("home_score")), _int_or_none(r.get("away_score")),
+                    1 if (r.get("location") or "").strip().lower() == "neutral" else 0,
+                    (r.get("stadium") or "").strip() or None,
                 ),
             )
             saved += 1

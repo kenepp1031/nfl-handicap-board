@@ -127,7 +127,8 @@ def fetch_games() -> list[dict]:
 def refresh_week(season: int, week: int) -> int:
     try:
         parsed_games = fetch_games()
-    except Exception:
+    except Exception as ex:
+        print(f"dk_lines: fetch failed ({ex!r}); keeping last lines")
         return 0
     # The page only ever carries the current week. Writing its numbers onto a
     # different week would silently mislabel them, so drop anything that isn't
